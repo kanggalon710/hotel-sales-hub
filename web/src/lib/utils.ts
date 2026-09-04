@@ -61,20 +61,25 @@ export function formatDateTime(value: Date | number | null | undefined, locale =
 }
 
 /** Compact relative time; drives SLA and freshness copy. */
+/**
+ * Jarak waktu dalam bahasa Indonesia, ringkas agar muat di dalam sel tabel.
+ * Satuannya disingkat (mnt, jam, hr, bln) karena kolom seperti "jatuh tempo"
+ * sempit, sementara arah waktunya tetap eksplisit lewat "lalu" dan "lagi".
+ */
 export function relativeTime(value: Date | number | null | undefined, now = Date.now()) {
   if (value == null) return '–';
   const ms = new Date(value).getTime() - now;
   const abs = Math.abs(ms);
   const mins = Math.round(abs / 60_000);
   const past = ms < 0;
-  const fmt = (n: number, unit: string) => (past ? `${n}${unit} ago` : `in ${n}${unit}`);
-  if (mins < 1) return past ? 'just now' : 'now';
-  if (mins < 60) return fmt(mins, 'm');
+  const fmt = (n: number, unit: string) => (past ? `${n} ${unit} lalu` : `${n} ${unit} lagi`);
+  if (mins < 1) return past ? 'baru saja' : 'sebentar lagi';
+  if (mins < 60) return fmt(mins, 'mnt');
   const hours = Math.round(mins / 60);
-  if (hours < 24) return fmt(hours, 'h');
+  if (hours < 24) return fmt(hours, 'jam');
   const days = Math.round(hours / 24);
-  if (days < 30) return fmt(days, 'd');
-  return fmt(Math.round(days / 30), 'mo');
+  if (days < 30) return fmt(days, 'hr');
+  return fmt(Math.round(days / 30), 'bln');
 }
 
 export function isOverdue(value: Date | number | null | undefined, now = Date.now()) {

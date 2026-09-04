@@ -15,6 +15,7 @@ export function OrganizationForm({
     name: string; currency: string; locale: string; timezone: string;
     taxPercent: number; servicePercent: number; quotationValidityHours: number;
     firstResponseSlaMinutes: number; availabilityStaleAfterMinutes: number;
+    postStayFollowUpDays: number; winBackAfterDays: number;
   };
 }) {
   const [state, action, pending] = useActionState(updateOrganizationAction, null);
@@ -90,6 +91,24 @@ export function OrganizationForm({
                 hint="Beyond this, a cached result is labelled stale and cannot be quoted from without a recheck."
               >
                 <Input id="org-stale" name="availabilityStaleAfterMinutes" type="number" min={1} max={1440} defaultValue={values.availabilityStaleAfterMinutes} required />
+              </Field>
+              <Field
+                label="Ucapan terima kasih setelah (hari)"
+                htmlFor="org-poststay"
+                required
+                error={errors?.postStayFollowUpDays}
+                hint="Jeda sejak check-out sebelum tugas terima kasih dan permintaan ulasan jatuh tempo."
+              >
+                <Input id="org-poststay" name="postStayFollowUpDays" type="number" min={0} max={30} defaultValue={values.postStayFollowUpDays} required />
+              </Field>
+              <Field
+                label="Ajak menginap lagi setelah (hari)"
+                htmlFor="org-winback"
+                required
+                error={errors?.winBackAfterDays}
+                hint="Jeda sejak check-out sebelum tamu muncul di daftar Pasca-Inap."
+              >
+                <Input id="org-winback" name="winBackAfterDays" type="number" min={7} max={1095} defaultValue={values.winBackAfterDays} required />
               </Field>
             </div>
           </fieldset>

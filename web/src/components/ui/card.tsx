@@ -34,7 +34,16 @@ export function CardHeader({
   icon?: React.ReactNode;
 }) {
   return (
-    <header className={cn('flex items-start justify-between gap-3 px-5 pt-4 pb-3', className)}>
+    <header
+      className={cn(
+        // Di telepon aksi turun ke bawah judul. Saat sebaris, tombol dengan
+        // label panjang menyisakan kolom sempit untuk subjudul, sehingga
+        // kalimatnya pecah jadi menara dua kata yang tidak terbaca.
+        'flex flex-col items-start gap-2 px-5 pt-4 pb-3',
+        'sm:flex-row sm:items-start sm:justify-between sm:gap-3',
+        className,
+      )}
+    >
       <div className="flex min-w-0 items-start gap-2.5">
         {icon ? <span className="mt-0.5 shrink-0 text-ink-3">{icon}</span> : null}
         <div className="min-w-0">
@@ -42,7 +51,7 @@ export function CardHeader({
           {subtitle ? <p className="t-meta mt-0.5 max-w-prose">{subtitle}</p> : null}
         </div>
       </div>
-      {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
+      {action ? <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div> : null}
     </header>
   );
 }

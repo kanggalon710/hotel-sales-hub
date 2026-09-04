@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, eq, isNull, lte, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { contacts, db, leads, organizations, reservationRequests, tasks } from '@/db';
 import { newId } from '@/server/crypto';
 import { writeAudit } from '@/server/audit';
@@ -149,4 +149,88 @@ export function winBackCandidates(organizationId: string, now = new Date(), limi
     .orderBy(sql`${contacts.stayCount} desc, ${contacts.lastStayDate} asc`)
     .limit(limit)
     .all();
+}
+
+/**
+ * Tiga pertanyaan berbeda yang dijawab layar pasca-inap, diambil sekaligus agar
+ * halaman tidak menembak database berkali-kali untuk hal yang berkaitan.
+ */
+export type AfterSalesBoard = {
+  pendingThanks: {
+    taskId: string; contactId: string; guestName: string;
+    propertyId: string | null; leadId: string | null;
+    dueAt: Date | null; stayCount: number; lastStayDate: string | null;
+  }[];
+  dueWinBack: ReturnType<typeof winBackCandidates>;
+  metrics: {
+    staysCompleted: number;
+    repeatGuests: number;
+    thanksOutstanding: number;
+    winBackOutstanding: number;
+  };
+};
+
+export function afterSalesBoard(
+  organizationId: string,
+  propertyIds: string[],
+  now = new Date(),
+): AfterSalesBoard {
+  const scoped = propertyIds.length ? inArray(tasks.propertyId, propertyIds) : undefined;
+
+  const pendingThanks = db
+    .select({
+      taskId: tasks.id, contactId: tasks.contactId, propertyId: tasks.propertyId,
+      leadId: tasks.leadId, dueAt: tasks.dueAt,
+      guestName: contacts.fullName, stayCount: contacts.stayCount, lastStayDate: contacts.lastStayDate,
+    })
+    .from(tasks)
+    .innerJoin(contacts, eq(contacts.id, tasks.contactId))
+    .where(and(
+      eq(tasks.organizationId, organizationId),
+      eq(tasks.type, AFTER_SALES_TASK_TYPES.postStay),
+      eq(tasks.status, 'open'),
+      scoped,
+    ))
+    .orderBy(tasks.dueAt)
+    .limit(50)
+    .all()
+    .map((r) => ({ ...r, contactId: r.contactId ?? '' }));
+
+  const winBackOutstanding = db
+    .select({ id: tasks.id })
+    .from(tasks)
+    .where(and(
+      eq(tasks.organizationId, organizationId),
+      eq(tasks.type, AFTER_SALES_TASK_TYPES.winBack),
+      eq(tasks.status, 'open'),
+      scoped,
+    ))
+    .all().length;
+
+  const completed = db
+    .select({ id: reservationRequests.id })
+    .from(reservationRequests)
+    .where(and(
+      eq(reservationRequests.organizationId, organizationId),
+      sql`${reservationRequests.stayCompletedAt} is not null`,
+      propertyIds.length ? inArray(reservationRequests.propertyId, propertyIds) : undefined,
+    ))
+    .all().length;
+
+  const repeatGuests = db
+    .select({ id: contacts.id })
+    .from(contacts)
+    .where(and(eq(contacts.organizationId, organizationId), sql`${contacts.stayCount} > 1`))
+    .all().length;
+
+  return {
+    pendingThanks,
+    dueWinBack: winBackCandidates(organizationId, now),
+    metrics: {
+      staysCompleted: completed,
+      repeatGuests,
+      thanksOutstanding: pendingThanks.length,
+      winBackOutstanding,
+    },
+  };
 }

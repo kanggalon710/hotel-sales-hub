@@ -120,3 +120,59 @@ menyembunyikan jalan buntu berikutnya.
 Modul di `src/` bisa dijalankan Node biasa lewat `scripts/alias-loader.mjs`,
 yang menyelesaikan alias `@/` dan impor tanpa ekstensi sebagaimana dilakukan
 bundler. Tanpa itu, lapisan layanan hanya bisa diuji lewat server.
+
+## Tata letak dan navigasi
+
+### Navigasi mengikuti perjalanan tamu
+
+Kelompok menu sebelumnya menamai dirinya "Relationships" lalu mengisinya dengan
+Tamu dan Laporan, dua hal yang tidak berhubungan. Lebih penting lagi, perjalanan
+itu berhenti di penjualan, seolah tamu lenyap begitu memesan.
+
+| Kelompok | Isi | Pertanyaan yang dijawab |
+|---|---|---|
+| Kerja harian | Hari Saya, Prospek, Pipeline | Apa yang harus saya kerjakan sekarang? |
+| Penjualan | Ketersediaan, Penawaran, Persetujuan, Reservasi | Bagaimana saya menjualnya? |
+| Tamu | Tamu, Pasca-Inap | Bagaimana hubungan dengan tamunya? |
+| Analisis | Laporan | Bagaimana hasilnya? |
+| Administrasi | Integrasi, Pengaturan, Log Audit | Bagaimana sistemnya diatur? |
+
+### Layar Pasca-Inap
+
+Sapuan dijalankan saat halaman dibuka, mengikuti pola `expireStaleQuotations`
+pada halaman Penawaran. Karena idempoten, membuka halaman dua kali tidak
+menggandakan tugas. Sebelum ini `runAfterSalesSweep` tidak pernah dipanggil
+siapa pun: mesinnya ada, pemicunya tidak.
+
+Halaman menjawab tiga pertanyaan berbeda, dan susunannya mengikuti urutan itu:
+
+1. **Ringkasan** — berapa inap selesai, berapa tamu berulang, berapa yang menunggu.
+2. **Baru selesai menginap** — siapa yang belum diucapkan terima kasih.
+3. **Waktunya diajak kembali** — siapa yang jedanya sudah lewat, yang paling sering menginap didahulukan.
+
+### Cacat tata letak yang ditemukan lewat peninjauan visual
+
+| Cacat | Sebab | Perbaikan |
+|---|---|---|
+| Subjudul kartu pecah jadi menara dua kata di telepon | `CardHeader` menyusun judul dan tombol sebaris di semua lebar; tombol berlabel panjang menyisakan kolom sempit | Aksi turun ke bawah judul di bawah 640px, tetap sebaris di atasnya |
+| Header kolom "Sudah menginap" terpotong | 18% dari 720px tidak cukup untuk teks header, padahal isinya hanya "5x" | Header dipendekkan jadi "Menginap", lebar kolom disusun ulang |
+| Properti bermodus CRM menampilkan seluruh kamarnya terkunci PMS | Seed menandai semua baris `source: 'pms'` sementara properti bawaannya `inventorySource: 'crm'` | Seed memberi Jakarta modus CRM dan Bali modus PMS, sehingga demo memperlihatkan keduanya dan tidak ada layar yang kontradiktif |
+| "in 1d" muncul di halaman berbahasa Indonesia | `relativeTime` hanya punya keluaran bahasa Inggris | Dilokalkan: "1 hr lagi", "4 jam lalu", "baru saja" |
+| Kolom tingkat tamu menampilkan kata mentah "gold" | Tidak ada konstanta label untuk `contacts.guest_tier` | `GUEST_TIERS` dan `guestTierLabel()` di `lib/constants` |
+
+### Riwayat inap pada tenant demo
+
+Seed kini menambahkan lima inap yang sudah selesai dengan jarak berbeda-beda,
+sehingga sebagian tamu jatuh tempo untuk diajak kembali dan sebagian belum.
+`stay_completed_at` sengaja dibiarkan kosong: sapuanlah yang mengisinya saat
+halaman pertama kali dibuka, sehingga demo memperlihatkan mekanismenya bekerja,
+bukan hasil yang sudah dipalsukan.
+
+## Yang masih berbahasa Inggris
+
+Navigasi, Pasca-Inap, Kamar & Tarif, pesan kesalahan modul inventaris, jarak
+waktu, dan tingkat tamu sudah berbahasa Indonesia. Isi halaman lama (Hari Saya,
+Prospek, Pipeline, Penawaran, Reservasi, Laporan) masih berbahasa Inggris.
+Menerjemahkannya sepotong-sepotong menghasilkan campuran yang lebih buruk
+daripada satu bahasa yang konsisten, jadi sisanya menunggu satu lintasan penuh
+dengan lapisan i18n yang benar.

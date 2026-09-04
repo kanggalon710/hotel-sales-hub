@@ -85,6 +85,8 @@ export default async function SettingsPage() {
             quotationValidityHours: org.quotationValidityHours,
             firstResponseSlaMinutes: org.firstResponseSlaMinutes,
             availabilityStaleAfterMinutes: org.availabilityStaleAfterMinutes,
+          postStayFollowUpDays: org.postStayFollowUpDays,
+          winBackAfterDays: org.winBackAfterDays,
           }}
         />
       ) : (

@@ -24,6 +24,8 @@ const orgSchema = z.object({
   quotationValidityHours: z.coerce.number().int().min(1).max(720),
   firstResponseSlaMinutes: z.coerce.number().int().min(1).max(1440),
   availabilityStaleAfterMinutes: z.coerce.number().int().min(1).max(1440),
+  postStayFollowUpDays: z.coerce.number().int().min(0).max(30),
+  winBackAfterDays: z.coerce.number().int().min(7).max(1095),
 });
 
 export async function updateOrganizationAction(_prev: unknown, formData: FormData): Promise<ActionResult> {

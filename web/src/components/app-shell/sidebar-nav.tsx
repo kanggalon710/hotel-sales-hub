@@ -5,8 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Activity, BarChart3, BedDouble, CalendarCheck, Contact, FileText, Kanban,
-  LayoutGrid, Menu, Plug, Settings, ShieldCheck, Users, X,
+  Activity, BarChart3, BedDouble, CalendarCheck, Contact, FileText, HeartHandshake, Kanban, LayoutGrid, Menu, Plug, Settings, ShieldCheck, Users, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { NavGroup, NavIcon } from './nav-config';
@@ -15,7 +14,8 @@ import { Button } from '@/components/ui/button';
 const ICONS: Record<NavIcon, typeof LayoutGrid> = {
   'my-day': LayoutGrid, leads: Users, pipeline: Kanban, availability: BedDouble,
   quotations: FileText, approvals: ShieldCheck, reservations: CalendarCheck,
-  guests: Contact, reports: BarChart3, integrations: Plug, settings: Settings, audit: Activity,
+  guests: Contact, 'after-sales': HeartHandshake, reports: BarChart3,
+  integrations: Plug, settings: Settings, audit: Activity,
 };
 
 function isActive(pathname: string, href: string, exact?: boolean) {

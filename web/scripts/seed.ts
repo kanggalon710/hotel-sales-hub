@@ -74,13 +74,17 @@ db.insert(s.organizations).values({
 }).run();
 
 const props = [
-  { id: newId('prp'), code: 'KLJ', name: 'The Kalyana Jakarta', city: 'Jakarta', country: 'ID' },
-  { id: newId('prp'), code: 'AMB', name: 'Amanaya Bali Resort', city: 'Badung', country: 'ID' },
+  // Jakarta mengelola kamarnya sendiri di CRM: inilah keadaan sebuah hotel
+  // sebelum PMS terpasang, dan yang membuat layar Kamar & Tarif bisa disunting.
+  { id: newId('prp'), code: 'KLJ', name: 'The Kalyana Jakarta', city: 'Jakarta', country: 'ID', inventorySource: 'crm' as const },
+  // Bali sudah tersambung PMS: kamar dan tarifnya cermin, terkunci dari sini.
+  { id: newId('prp'), code: 'AMB', name: 'Amanaya Bali Resort', city: 'Badung', country: 'ID', inventorySource: 'pms' as const },
 ];
 for (const p of props) {
   db.insert(s.properties).values({
     id: p.id, organizationId: orgId, name: p.name, code: p.code,
     city: p.city, country: p.country, timezone: 'Asia/Jakarta', currency: 'IDR',
+    inventorySource: p.inventorySource,
     taxPercent: 11, servicePercent: 10, active: true, createdAt: ago(180 * DAY),
   }).run();
 }
@@ -301,22 +305,28 @@ for (const p of props) {
     const rid = newId('rmt');
     const rate = isResort ? Math.round(rt.rate * 1.25) : rt.rate;
     db.insert(s.roomTypeReferences).values({
-      id: rid, organizationId: orgId, propertyId: p.id, connectionId: pmsId,
-      externalId: `${p.code}-${rt.code}`, code: rt.code, name: rt.name,
+      id: rid, organizationId: orgId, propertyId: p.id,
+      connectionId: p.inventorySource === 'pms' ? pmsId : null,
+      externalId: p.inventorySource === 'pms' ? `${p.code}-${rt.code}` : null,
+      code: rt.code, name: rt.name,
       maxAdults: rt.maxAdults, maxChildren: rt.maxChildren, bedType: rt.bed, sizeSqm: rt.size,
       // Alotmen nyata: tanpa ini properti terlihat punya nol kamar dan tidak
       // ada satu pun tanggal yang bisa dijual.
       totalRooms: rt.code === 'VILLA' ? 8 : rt.code === 'EXEC' ? 10 : 24,
-      source: 'pms',
-      active: true, lastSyncedAt: ago(2 * HOUR), createdAt: ago(60 * DAY),
+      source: p.inventorySource,
+      active: true,
+      lastSyncedAt: p.inventorySource === 'pms' ? ago(2 * HOUR) : null,
+      createdAt: ago(60 * DAY),
     }).run();
     roomTypes[p.id].push({ id: rid, code: rt.code, name: rt.name, rate, maxAdults: rt.maxAdults });
   }
   for (const rp of ratePlanDefs) {
     const rid = newId('rtp');
     db.insert(s.ratePlanReferences).values({
-      id: rid, organizationId: orgId, propertyId: p.id, connectionId: pmsId,
-      externalId: `${p.code}-${rp.code}`, code: rp.code, name: rp.name,
+      id: rid, organizationId: orgId, propertyId: p.id,
+      connectionId: p.inventorySource === 'pms' ? pmsId : null,
+      externalId: p.inventorySource === 'pms' ? `${p.code}-${rp.code}` : null,
+      code: rp.code, name: rp.name,
       mealPlan: rp.meal, refundable: rp.refundable, minStay: rp.minStay,
       inclusions: JSON.stringify(rp.inclusions),
       policies: rp.refundable
@@ -329,7 +339,7 @@ for (const p of props) {
       roomTypeSurcharges: JSON.stringify(Object.fromEntries(
         roomTypes[p.id].map((r) => [r.code, r.rate - Math.min(...roomTypes[p.id].map((x) => x.rate))]),
       )),
-      source: 'pms',
+      source: p.inventorySource,
       active: true, lastSyncedAt: ago(2 * HOUR), createdAt: ago(60 * DAY),
     }).run();
     ratePlans[p.id].push({ id: rid, code: rp.code, name: rp.name, refundable: rp.refundable, minStay: rp.minStay });
@@ -867,6 +877,71 @@ for (const [i, name] of ['lead_created', 'availability_searched', 'quotation_sen
       createdAt: ago((i * 12 + k) * 4 * HOUR),
     }).run();
   }
+}
+
+/* ------------------------- riwayat inap yang sudah lewat ------------------------- *
+ * Hotel yang sudah berjalan punya tamu yang pernah menginap. Tanpa riwayat ini
+ * layar Pasca-Inap tampak mati padahal berfungsi, dan tidak ada tamu yang layak
+ * diajak kembali. Tanggalnya dibuat di masa lalu dengan jarak yang berbeda-beda
+ * supaya sebagian jatuh tempo untuk diajak kembali dan sebagian belum.
+ * ------------------------------------------------------------------------- */
+
+const pastStays: { guest: string; phone: string; daysAgo: number; nights: number; stays: number }[] = [
+  { guest: 'Ibu Kartika Wijaya', phone: '+6281100200301', daysAgo: 210, nights: 3, stays: 4 },
+  { guest: 'Bapak Hendra Gunawan', phone: '+6281100200302', daysAgo: 175, nights: 2, stays: 3 },
+  { guest: 'Ms. Amelia Foster', phone: '+6281100200303', daysAgo: 160, nights: 5, stays: 2 },
+  { guest: 'Bapak Yusuf Rahman', phone: '+6281100200304', daysAgo: 40, nights: 2, stays: 1 },
+  { guest: 'Ibu Sinta Melati', phone: '+6281100200305', daysAgo: 6, nights: 1, stays: 1 },
+];
+
+for (const [i, past] of pastStays.entries()) {
+  const propertyId = pick(props, i).id;
+  const propCode = props.find((p) => p.id === propertyId)!.code;
+  const checkOutMs = Date.now() - past.daysAgo * DAY;
+  const checkOut = new Date(checkOutMs).toISOString().slice(0, 10);
+  const checkIn = new Date(checkOutMs - past.nights * DAY).toISOString().slice(0, 10);
+  const rt = roomTypes[propertyId][i % roomTypes[propertyId].length];
+  const rp = ratePlans[propertyId][i % ratePlans[propertyId].length];
+
+  const contactId = newId('cnt');
+  db.insert(s.contacts).values({
+    id: contactId, organizationId: orgId, fullName: past.guest,
+    phoneNormalized: past.phone, preferredLanguage: 'id',
+    guestTier: past.stays >= 4 ? 'gold' : past.stays >= 2 ? 'silver' : 'member',
+    consentStatus: 'granted',
+    // Riwayat sudah terisi: sapuan pasca-inap akan menambah satu di atasnya.
+    lastStayDate: checkOut, stayCount: past.stays,
+    createdAt: ago((past.daysAgo + 30) * DAY),
+  }).run();
+
+  const leadId = newId('led');
+  db.insert(s.leads).values({
+    id: leadId, organizationId: orgId, propertyId, contactId,
+    code: `LEAD-9${String(i + 1).padStart(3, '0')}`,
+    stage: 'confirmed', status: 'won', inquiryType: 'fit', channel: 'whatsapp',
+    ownerUserId: pick([U.agent1, U.agent2, U.agent3], i),
+    checkIn, checkOut, rooms: 1, adults: 2, children: 0,
+    estimatedValue: rt.rate * past.nights, currency: 'IDR',
+    createdAt: ago((past.daysAgo + 20) * DAY), updatedAt: ago(past.daysAgo * DAY),
+  }).run();
+
+  const reqId = newId('rrq');
+  db.insert(s.reservationRequests).values({
+    id: reqId, organizationId: orgId, propertyId, leadId, quotationVersionId: null,
+    code: `RR-${propCode}-9${String(i + 1).padStart(3, '0')}`,
+    kind: 'reservation', status: 'confirmed',
+    guestName: past.guest, guestPhone: past.phone, guestEmail: null,
+    checkIn, checkOut, nights: past.nights, rooms: 1, adults: 2, children: 0,
+    roomTypeId: rt.id, roomTypeName: rt.name, ratePlanId: rp.id, ratePlanName: rp.name,
+    totalAmount: rt.rate * past.nights, currency: 'IDR',
+    requestedByUserId: pick([U.agent1, U.agent2, U.agent3], i), assignedToUserId: U.fo,
+    submittedAt: ago((past.daysAgo + 10) * DAY),
+    decidedAt: ago((past.daysAgo + 9) * DAY), decidedByUserId: U.fo,
+    // Sengaja dibiarkan kosong: sapuan pasca-inap yang akan mengisinya, sehingga
+    // demo memperlihatkan mekanismenya bekerja, bukan hasil yang sudah dipalsukan.
+    stayCompletedAt: null,
+    createdAt: ago((past.daysAgo + 10) * DAY), updatedAt: ago(past.daysAgo * DAY),
+  }).run();
 }
 
 const counts = TABLES.map((t) => `${t}=${(raw.prepare(`SELECT COUNT(*) AS c FROM ${t}`).get() as { c: number }).c}`)

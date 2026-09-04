@@ -161,6 +161,23 @@ export const LOST_REASONS = [
   'Guest unresponsive', 'Booked via OTA', 'Trip cancelled', 'Other',
 ] as const;
 
+/**
+ * Tingkat loyalitas tamu. Nilainya sama dengan yang tersimpan di
+ * `contacts.guest_tier`; labelnya dipisah supaya kolom tabel tidak menampilkan
+ * kata mentah seperti "gold" begitu saja.
+ */
+export const GUEST_TIERS = [
+  { key: 'none', label: 'Belum berjenjang' },
+  { key: 'member', label: 'Anggota' },
+  { key: 'silver', label: 'Perak' },
+  { key: 'gold', label: 'Emas' },
+  { key: 'platinum', label: 'Platina' },
+] as const;
+
+export function guestTierLabel(key: string | null | undefined) {
+  return GUEST_TIERS.find((t) => t.key === key)?.label ?? 'Belum berjenjang';
+}
+
 export const INQUIRY_TYPES = [
   { key: 'fit', label: 'FIT / Direct room' },
   { key: 'corporate', label: 'Corporate' },
