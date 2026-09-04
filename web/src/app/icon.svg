@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!--
+    Lambang merek, digambar bukan dihasilkan.
+
+    Pada 16px sebuah favicon hanya punya ruang untuk satu siluet. Gambar hasil
+    generate akan menjadi bubur pada ukuran itu, jadi tandanya dibangun dari tiga
+    bentuk saja: sandaran, kasur, dan kaki. Ketiganya berbagi radius yang sama
+    supaya terbaca sebagai satu benda, bukan tiga persegi.
+
+    Ungunya #6938EF, warna merek yang sama dengan tombol utama aplikasi.
+  -->
+  <rect width="32" height="32" rx="7" fill="#6938EF"/>
+  <g fill="#FFFFFF">
+    <rect x="6" y="8.5" width="4.2" height="14" rx="2.1"/>
+    <rect x="6" y="14.5" width="20" height="8" rx="3.2"/>
+    <rect x="6" y="22" width="3.4" height="2.6" rx="1.2"/>
+    <rect x="22.6" y="22" width="3.4" height="2.6" rx="1.2"/>
+  </g>
+</svg>

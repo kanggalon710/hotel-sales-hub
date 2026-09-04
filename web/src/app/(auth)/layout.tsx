@@ -23,20 +23,25 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       */}
       <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-12">
         <Image
-          src="/brand/signin.jpg"
+          src="/brand/signin-teak-screen.jpg"
           alt=""
           fill
           priority
           sizes="(min-width: 1024px) 52vw, 0px"
           className="object-cover"
         />
-        {/* Tabir menjamin kontras teks di atas bagian foto yang paling terang. */}
+        {/*
+          Tabir menegak dari kiri, bukan mendatar dari atas. Teks panel ini
+          seluruhnya rata kiri, jadi kontras hanya perlu dijamin di sana;
+          menabiri seluruh bidang secara merata akan mematikan tekstur kayunya,
+          yang justru satu-satunya alasan foto ini dipakai.
+        */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              'linear-gradient(180deg, rgb(16 24 40 / 0.74) 0%, rgb(16 24 40 / 0.52) 34%, rgb(16 24 40 / 0.92) 100%)',
+              'linear-gradient(90deg, rgb(16 24 40 / 0.94) 0%, rgb(16 24 40 / 0.86) 38%, rgb(16 24 40 / 0.55) 72%, rgb(16 24 40 / 0.32) 100%)',
           }}
         />
         <div className="relative">
