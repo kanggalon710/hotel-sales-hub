@@ -199,7 +199,7 @@ export default async function LeadCockpitPage({ params }: { params: Promise<{ id
   const stageDef = template?.stages.find((st) => st.key === lead.stage) ?? null;
 
   return (
-    <PageShell className="max-w-[1500px]">
+    <PageShell>
       {/*
         The header carries four things: who, what state, how much, and the next
         action. Everything else was duplicated elsewhere on the same screen and

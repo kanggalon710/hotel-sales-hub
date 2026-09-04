@@ -352,6 +352,22 @@
 @utility hairline-t { border-top: 1px solid var(--border); }
 @utility hairline-b { border-bottom: 1px solid var(--border); }
 
+/* ---- Navigasi yang menciut ----
+   Saat sidebar menyusut menjadi rel ikon, menu pengguna ikut menyusut menjadi
+   avatarnya saja. Menyembunyikannya sama sekali akan menghapus satu-satunya
+   cara melihat siapa yang masuk dan cara keluar. Dibatasi pada lebar desktop,
+   karena laci di telepon selalu lebar penuh betapa pun keadaan rel ini. */
+@media (min-width: 1024px) {
+  [data-nav="collapsed"] [data-sidebar-footer] [data-user-text],
+  [data-nav="collapsed"] [data-sidebar-footer] [data-user-chevron] {
+    display: none;
+  }
+  [data-nav="collapsed"] [data-sidebar-footer] > * > button {
+    justify-content: center;
+    padding-inline: 0;
+  }
+}
+
 /* ---- Touch target ----
    A small text link keeps its type size but gains a 36px hit area on a phone,
    where the pointer is a fingertip. Above 640px the pointer is precise and the

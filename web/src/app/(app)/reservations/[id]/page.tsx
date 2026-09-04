@@ -63,7 +63,7 @@ export default async function ReservationDetailPage({ params }: { params: Promis
   const canDecide = session.permissions.has('reservation.confirm');
 
   return (
-    <PageShell className="max-w-[1200px]">
+    <PageShell narrow>
       <Link
         href="/reservations"
         className="focus-ring tap inline-flex items-center gap-1.5 rounded text-[12px] text-ink-3 hover:text-ink"

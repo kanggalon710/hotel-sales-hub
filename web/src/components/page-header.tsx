@@ -44,12 +44,40 @@ export function PageHeader({
 }
 
 /**
- * Page shell: consistent gutters per breakpoint and a hard cap on width.
- *   phone 16px · tablet 24px · desktop 32px · cap 1440px
+ * Kerangka halaman: satu jarak tepi per titik henti, dan konten rata kiri.
+ *
+ *   telepon 16px · tablet 24px · desktop 32px
+ *
+ * Rata kiri, bukan di tengah. Sebelumnya kerangka ini memakai `mx-auto`, dan
+ * tiap halaman memilih batas lebarnya sendiri: ada tujuh nilai berbeda di
+ * seluruh aplikasi. Akibatnya isi halaman bergeser kiri dan kanan setiap kali
+ * orang berpindah menu, karena sisa ruangnya dibagi dua. Dengan rata kiri,
+ * tepi kiri setiap halaman berada di titik yang sama persis, dan yang berbeda
+ * hanya di mana ia berakhir.
+ *
+ * Hanya ada dua lebar baca. `narrow` untuk halaman yang isinya formulir dan
+ * teks, karena baris yang terlalu panjang melelahkan; bawaannya untuk tabel
+ * dan papan, yang justru butuh ruang.
  */
-export function PageShell({ children, className, wide }: { children: React.ReactNode; className?: string; wide?: boolean }) {
+export function PageShell({
+  children,
+  className,
+  narrow,
+  wide,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  narrow?: boolean;
+  wide?: boolean;
+}) {
   return (
-    <div className={cn('mx-auto w-full space-y-4 px-4 py-4 sm:space-y-8 sm:px-6 sm:py-8 lg:px-8', wide ? 'max-w-none' : 'max-w-[1440px]', className)}>
+    <div
+      className={cn(
+        'w-full space-y-4 px-4 py-4 sm:space-y-8 sm:px-6 sm:py-8 lg:px-8',
+        wide ? 'max-w-none' : narrow ? 'max-w-[1120px]' : 'max-w-[1440px]',
+        className,
+      )}
+    >
       {children}
     </div>
   );

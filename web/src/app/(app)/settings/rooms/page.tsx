@@ -30,7 +30,7 @@ export default async function RoomsPage() {
 
   if (!property) {
     return (
-      <PageShell className="max-w-[1100px]">
+      <PageShell narrow>
         <PageHeader title="Kamar & Tarif" description="Belum ada properti yang bisa dikelola." />
       </PageShell>
     );
@@ -41,7 +41,7 @@ export default async function RoomsPage() {
   const totalRooms = roomTypes.filter((r) => r.active).reduce((sum, r) => sum + r.totalRooms, 0);
 
   return (
-    <PageShell className="max-w-[1100px]">
+    <PageShell narrow>
       <Link href="/settings" className="focus-ring tap inline-flex items-center gap-1.5 rounded text-[12px] text-ink-3 hover:text-ink">
         <ArrowLeft aria-hidden className="size-3.5" />
         Kembali ke pengaturan

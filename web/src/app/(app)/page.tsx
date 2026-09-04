@@ -285,7 +285,7 @@ export default async function MyDayPage() {
   const totalWaiting = blocked.length + dueToday.length + decisions.length;
 
   return (
-    <PageShell className="max-w-[1100px]">
+    <PageShell narrow>
       <PageHeader
         title="My Day"
         count={totalWaiting > 0 ? `${totalWaiting} item${totalWaiting === 1 ? '' : 's'} need you` : 'nothing waiting'}

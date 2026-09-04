@@ -62,7 +62,7 @@ export default async function ApprovalsPage() {
   const decided = rows.filter((r) => r.status !== 'pending');
 
   return (
-    <PageShell className="max-w-[1100px]">
+    <PageShell narrow>
       <PageHeader
         title="Discount approvals"
         description={`You can approve up to ${session.user.canApproveDiscountUpToPercent}%. Anything higher must be escalated.`}

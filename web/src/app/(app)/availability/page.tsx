@@ -13,7 +13,7 @@ export default async function AvailabilityPage() {
   const scope = await getPropertyScope(session);
 
   return (
-    <PageShell className="max-w-[1200px]">
+    <PageShell narrow>
       <PageHeader
         title="Availability"
         description="Live room and rate look-up. Every result carries its source and the time it was checked, and cached data is always labelled stale."

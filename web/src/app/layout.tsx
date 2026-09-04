@@ -37,13 +37,22 @@ export const viewport: Viewport = {
 };
 
 /** Light is the default; a stored dark preference is applied before first paint. */
-const themeBootstrap = `(function(){try{var t=localStorage.getItem('crm-theme');if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();`;
+/*
+ * Tema dan lebar navigasi dipasang sebelum cat pertama. Keduanya mengubah
+ * tata letak, jadi membacanya setelah React terpasang akan terlihat sebagai
+ * kedipan pada setiap pemuatan halaman.
+ */
+const shellBootstrap = `(function(){try{
+  var t=localStorage.getItem('crm-theme');
+  if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');}
+  if(localStorage.getItem('crm-nav')==='collapsed'){document.documentElement.setAttribute('data-nav','collapsed');}
+}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+        <script dangerouslySetInnerHTML={{ __html: shellBootstrap }} />
       </head>
       <body className={`${inter.variable} ${mono.variable}`}>
         <a

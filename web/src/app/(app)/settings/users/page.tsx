@@ -39,7 +39,7 @@ export default async function UsersPage() {
     .all();
 
   return (
-    <PageShell className="max-w-[1250px]">
+    <PageShell narrow>
       <Link href="/settings" className="focus-ring tap inline-flex items-center gap-1.5 rounded text-[12px] text-ink-3 hover:text-ink">
         <ArrowLeft aria-hidden className="size-3.5" />
         Back to settings

@@ -112,7 +112,7 @@ export default async function Guest360Page({ params }: { params: Promise<{ id: s
   const preferences = parseJson<string[]>(contact.preferences, []);
 
   return (
-    <PageShell className="max-w-[1300px]">
+    <PageShell>
       <Link href="/guests" className="focus-ring tap inline-flex items-center gap-1.5 rounded text-[12px] text-ink-3 hover:text-ink">
         <ArrowLeft aria-hidden className="size-3.5" />
         Back to guests

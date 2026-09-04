@@ -42,7 +42,7 @@ export default async function SettingsPage() {
   const isOrgAdmin = session.orgRoleKeys.includes('org_admin');
 
   return (
-    <PageShell className="max-w-[1100px]">
+    <PageShell narrow>
       <PageHeader
         title="Settings"
         description="Organization defaults, properties, people, and the permission model they all run on."

@@ -34,7 +34,7 @@ export default async function IntegrationsPage() {
   const origin = await requestOrigin();
 
   return (
-    <PageShell className="max-w-[1100px]">
+    <PageShell narrow>
       <PageHeader
         title="Integrations"
         description="Chatwoot owns conversations. The PMS/CRS owns inventory and reservations. This is where those connections are configured and watched."
