@@ -7,6 +7,7 @@ import { PageHeader, PageShell } from '@/components/page-header';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Meter, Metric, MetricStrip } from '@/components/ui/bits';
 import { Funnel } from '@/components/reports/funnel';
+import { BarChart, Donut } from '@/components/reports/charts';
 import { ReportPeriod } from '@/components/reports/report-period';
 import { ListState } from '@/components/ui/states';
 import { Table, TableScroll, Td, Th, Tr } from '@/components/ui/table';
@@ -86,6 +87,51 @@ export default async function ReportsPage({
   );
   const revenueOpportunity = rows.filter((r) => r.status === 'open').reduce((s, r) => s + r.value, 0);
 
+  /* Prospek masuk per bulan, dari yang paling lama ke yang terbaru, supaya
+     sumbu waktunya berjalan ke kanan sebagaimana orang membacanya. */
+  const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const monthly = new Map<string, number>();
+  for (const r of rows) {
+    const k = monthKey(r.createdAt);
+    monthly.set(k, (monthly.get(k) ?? 0) + 1);
+  }
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const leadsByMonth = [...monthly.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => ({ label: monthNames[Number(k.slice(5)) - 1], value: v }));
+
+  /* Sebaran tahap memakai warna token, bukan warna tetap, supaya terbaca pada
+     kedua tema. Tahap tanpa prospek tidak ditampilkan. */
+  const stagePalette = [
+    'var(--primary)', 'var(--accent)', 'var(--info)',
+    'var(--warning)', 'var(--success)', 'var(--ink-3)',
+  ];
+  const stageCounts = new Map<string, number>();
+  for (const r of rows) stageCounts.set(r.stage, (stageCounts.get(r.stage) ?? 0) + 1);
+  const rankedStages = [...stageCounts.entries()].sort(([, a], [, b]) => b - a);
+
+  /* Hanya lima teratas yang mendapat warnanya sendiri, sisanya digabung.
+     Paletnya berisi enam warna; membiarkan sepuluh tahap memutarinya membuat
+     dua tahap berbeda tampil sewarna, dan donat yang warnanya berulang tidak
+     lagi bisa dibaca. */
+  const TOP = 5;
+  const head = rankedStages.slice(0, TOP);
+  const tail = rankedStages.slice(TOP);
+  const stageSlices = [
+    ...head.map(([stage, value], i) => ({
+      label: titleCase(stage.replace(/_/g, ' ')),
+      value,
+      color: stagePalette[i],
+    })),
+    ...(tail.length
+      ? [{
+          label: `Lainnya (${tail.length} tahap)`,
+          value: tail.reduce((sum, [, v]) => sum + v, 0),
+          color: stagePalette[TOP],
+        }]
+      : []),
+  ];
+
   const responded = rows.filter((r) => r.firstRespondedAt);
   const avgFirstResponseMin = responded.length
     ? Math.round(
@@ -159,6 +205,34 @@ export default async function ReportsPage({
           tone={slaCompliance >= 90 ? 'success' : slaCompliance >= 70 ? 'warning' : 'danger'}
         />
       </MetricStrip>
+
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <Card>
+          <CardHeader
+            title="Prospek masuk per bulan"
+            subtitle={`Dihitung dari tanggal prospek dibuat, ${windowDays} hari terakhir.`}
+            icon={<BarChart3 aria-hidden className="size-4" />}
+          />
+          <CardBody>
+            {leadsByMonth.length === 0 ? (
+              <p className="t-meta">Belum ada prospek pada rentang ini.</p>
+            ) : (
+              <BarChart points={leadsByMonth} formatValue={(n) => String(Math.round(n))} />
+            )}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader title="Sebaran tahap" subtitle="Di mana prospek berhenti saat ini." />
+          <CardBody>
+            {stageSlices.length === 0 ? (
+              <p className="t-meta">Belum ada prospek pada rentang ini.</p>
+            ) : (
+              <Donut slices={stageSlices} total={total} totalLabel="total prospek" />
+            )}
+          </CardBody>
+        </Card>
+      </div>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
         <Card>

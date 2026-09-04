@@ -245,3 +245,61 @@ berdiri sebagai satu objek.
 Arah biru muda yang dipakai sebelum ini digantikan seluruhnya. Itu juga
 keputusan yang diminta sebelumnya, jadi perubahannya disebutkan di sini agar
 tidak tampak seperti kelalaian.
+
+
+## Tab, penomoran halaman, dan grafik
+
+Tiga pola dari rujukan Nexus yang diterapkan setelah paletnya.
+
+### Sudut pandang, bukan saringan tambahan
+
+Bilah tab di atas daftar prospek menjawab pertanyaan yang berbeda dari bilah
+saringan di bawahnya. Tab menjawab "kumpulan siapa yang sedang saya lihat":
+Semua, Milik saya, Belum ditugaskan, Terlambat. Saringan menjawab "persempit
+yang mana": tahap, pemilik, status, urutan.
+
+Jumlah pada tiap tab menghormati saringan yang sedang aktif, sehingga angkanya
+selalu menjelaskan apa yang akan muncul bila tab itu ditekan. Tanpa angka itu,
+tidak ada alasan untuk menekan tab yang kosong, dan penjual harus mencobanya
+satu per satu.
+
+Klausa saringan dipisah ke satu fungsi yang dipakai bersama oleh penghitung dan
+daftar. Bila keduanya menyusun klausanya sendiri, cepat atau lambat jumlah pada
+tab tidak lagi cocok dengan isi tabel di bawahnya.
+
+### Penomoran halaman menutup kebocoran, bukan sekadar menghias
+
+Daftar prospek sebelumnya dipotong pada `limit: 120` tanpa memberi tanda apa
+pun. Prospek ke-121 dan seterusnya hilang diam-diam: tidak ada tombol, tidak ada
+keterangan, tidak ada cara mengetahuinya dari layar. Ini cacat kebenaran, bukan
+celah tampilan.
+
+Sekarang 25 baris per halaman dengan keterangan "Menampilkan 1–25 dari N".
+Bagian terpenting justru kalimat jumlahnya, karena itulah yang memberitahu bahwa
+masih ada sisa.
+
+Nomor halaman datang dari URL, jadi ia bisa berupa apa saja. `?page=99` pada
+daftar berisi 16 baris dijepit kembali ke halaman terakhir yang sah; tanpa itu
+layar akan berbunyi "Menampilkan 2476–16 dari 16" di atas tabel kosong.
+
+### Grafik digambar tanpa pustaka
+
+Laporan mendapat grafik batang dan donat. Keduanya SVG yang digambar di server.
+Data yang ditampilkan hanya belasan titik; memuat pustaka grafik untuk itu
+berarti mengirim ratusan kilobyte demi belasan persegi panjang.
+
+Yang penting tetap dipenuhi: sumbu dibulatkan ke atas ke angka yang enak dibaca
+sehingga batang tertinggi tidak menyentuh tepi, setiap label menyebut nilai yang
+benar-benar dicapai grafik, dan warnanya diambil dari token tema sehingga
+terbaca pada kedua tema.
+
+Donat dibatasi lima tahap teratas ditambah "Lainnya". Paletnya berisi enam
+warna; membiarkan sepuluh tahap memutarinya membuat dua tahap berbeda tampil
+sewarna, dan donat yang warnanya berulang tidak lagi bisa dibaca.
+
+### Pesan kosong ikut mengetahui tab yang aktif
+
+Tab "Milik saya" yang kosong dahulu berbunyi "belum ada prospek", padahal
+prospeknya ada, hanya saja bukan milik orang itu. Tiap tab kini punya kalimat
+kosongnya sendiri, dan semuanya menawarkan jalan keluar yang sama: kembali ke
+tab Semua.

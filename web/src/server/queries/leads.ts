@@ -15,6 +15,7 @@ export type LeadFilters = {
   search?: string;
   overdueOnly?: boolean;
   limit?: number;
+  offset?: number;
   sort?: 'recent' | 'value' | 'checkin' | 'sla';
 };
 
@@ -68,9 +69,14 @@ const CLOSED = ['lost', 'cancelled'];
  * Single entry point for reading leads. Scope, visibility, and PII masking are
  * applied here so no caller can accidentally widen them.
  */
-export function listLeads(session: Session, scope: PropertyScope, filters: LeadFilters = {}): LeadRow[] {
+/**
+ * Klausa saringan dipisah agar penghitung dan daftar memakai definisi yang
+ * sama. Kalau keduanya menyusun klausanya sendiri, cepat atau lambat jumlah
+ * pada tab tidak lagi cocok dengan isi tabel di bawahnya.
+ */
+function leadClauses(session: Session, scope: PropertyScope, filters: LeadFilters): SQL[] | null {
   const base = leadScopeWhere(session, scope);
-  if (!base) return [];
+  if (!base) return null;
 
   const clauses: SQL[] = [base];
 
@@ -93,6 +99,25 @@ export function listLeads(session: Session, scope: PropertyScope, filters: LeadF
       )!,
     );
   }
+  return clauses;
+}
+
+/** Jumlah prospek yang cocok dengan saringan, untuk penomoran halaman dan tab. */
+export function countLeads(session: Session, scope: PropertyScope, filters: LeadFilters = {}): number {
+  const clauses = leadClauses(session, scope, filters);
+  if (!clauses) return 0;
+  const row = db
+    .select({ total: sql<number>`count(*)` })
+    .from(leads)
+    .innerJoin(contacts, eq(contacts.id, leads.contactId))
+    .where(and(...clauses))
+    .get();
+  return row?.total ?? 0;
+}
+
+export function listLeads(session: Session, scope: PropertyScope, filters: LeadFilters = {}): LeadRow[] {
+  const clauses = leadClauses(session, scope, filters);
+  if (!clauses) return [];
 
   const order =
     filters.sort === 'value' ? desc(leads.estimatedValue)
@@ -122,6 +147,7 @@ export function listLeads(session: Session, scope: PropertyScope, filters: LeadF
     .where(and(...clauses))
     .orderBy(order)
     .limit(filters.limit ?? 200)
+    .offset(filters.offset ?? 0)
     .all();
 
   if (rows.length === 0) return [];
