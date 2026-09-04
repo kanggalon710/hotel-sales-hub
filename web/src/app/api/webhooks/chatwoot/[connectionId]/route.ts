@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db, integrationConnections } from '@/db';
-import { decryptSecret, newId } from '@/server/crypto';
+import { decryptSecret, newId, secretsMatch } from '@/server/crypto';
 import { processWebhookEvent, recordWebhookEvent, type ChatwootPayload } from '@/server/services/chatwoot-ingest';
 
 export const dynamic = 'force-dynamic';
@@ -36,16 +36,34 @@ export async function POST(
 
   // Shared-secret check. Chatwoot's own signing varies by deployment, so the
   // token is issued by us and carried in a header or query string.
+  //
+  // This fails closed. The previous version only checked the token when the
+  // secret decrypted, so a connection whose ciphertext could not be read - the
+  // ordinary case when CRM_SECRET_KEY differs from the key that wrote the row -
+  // silently accepted every unauthenticated request. A public write endpoint
+  // that cannot verify its caller must refuse, not wave them through.
+  if (!connection.webhookSecretCiphertext) {
+    return NextResponse.json(
+      { ok: false, error: 'This endpoint has no webhook secret configured.' },
+      { status: 401 },
+    );
+  }
+
   const expected = decryptSecret(connection.webhookSecretCiphertext);
-  if (expected) {
-    const url = new URL(request.url);
-    const provided =
-      request.headers.get('x-webhook-token') ??
-      request.headers.get('x-chatwoot-signature') ??
-      url.searchParams.get('token');
-    if (provided !== expected) {
-      return NextResponse.json({ ok: false, error: 'Invalid webhook token.' }, { status: 401 });
-    }
+  if (!expected) {
+    return NextResponse.json(
+      { ok: false, error: 'The webhook secret for this connection cannot be read. Check CRM_SECRET_KEY, then rotate the secret.' },
+      { status: 503 },
+    );
+  }
+
+  const url = new URL(request.url);
+  const provided =
+    request.headers.get('x-webhook-token') ??
+    request.headers.get('x-chatwoot-signature') ??
+    url.searchParams.get('token');
+  if (!secretsMatch(provided, expected)) {
+    return NextResponse.json({ ok: false, error: 'Invalid webhook token.' }, { status: 401 });
   }
 
   const rawBody = await request.text();

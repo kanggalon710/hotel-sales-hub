@@ -118,3 +118,45 @@ Publishing the CRM turned three of these from theory into things that had to be 
 | The property cookie was set without `secure`. | It matches the session cookie and is `secure` in production. |
 
 `CHATWOOT_LIVE=1` is the switch between a simulated outbound queue and real API calls. Leave it off until the custom attributes exist in Chatwoot, otherwise every write fails on a missing attribute definition and lands in the dead-letter queue.
+
+## The webhook must fail closed
+
+The receiver authenticates with a shared secret issued by the CRM, sent as
+`?token=` or `X-Webhook-Token`. The secret is stored encrypted, so verifying a
+caller means decrypting it first, and that decryption can fail: most often
+because `CRM_SECRET_KEY` on the running server is not the key that wrote the
+row, which is the normal state after a database is copied between environments.
+
+An earlier version checked the token only when the secret decrypted:
+
+```ts
+const expected = decryptSecret(connection.webhookSecretCiphertext);
+if (expected) { /* compare */ }   // unreadable secret => no check at all
+```
+
+So a connection whose secret could not be read accepted every unauthenticated
+request and recorded the event. Anyone who learned the connection id could
+inject conversations and contacts. The id is not a secret: it is displayed on
+the Integrations page and travels in the webhook URL.
+
+It now refuses in all three cases, and comparison is constant-time:
+
+| Situation | Response |
+|---|---|
+| No secret stored on the connection | `401` |
+| Secret stored but not decryptable | `503`, naming `CRM_SECRET_KEY` as the thing to check |
+| Secret readable, token missing or wrong | `401` |
+
+Verify a deployment from outside, with no token. A `202` here means the endpoint
+is open to the internet:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' \
+  -X POST https://<crm public url>/api/webhooks/chatwoot/<connection id> \
+  -H 'content-type: application/json' -d '{"event":"probe"}'
+# 401 or 503 expected. 202 means it is accepting unauthenticated events.
+```
+
+A `503` is fixed by setting `CRM_SECRET_KEY` back to the key that wrote the row,
+or by rotating the secret on the Integrations page and re-pasting the new URL
+into Chatwoot.

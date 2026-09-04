@@ -37,6 +37,19 @@ export function decryptSecret(payload: string | null | undefined): string | null
   }
 }
 
+/**
+ * Constant-time comparison for shared secrets. `===` on a secret leaks its
+ * prefix through timing, and the lengths must be compared separately because
+ * timingSafeEqual throws when they differ.
+ */
+export function secretsMatch(a: string | null | undefined, b: string | null | undefined) {
+  if (!a || !b) return false;
+  const ab = Buffer.from(a, 'utf8');
+  const bb = Buffer.from(b, 'utf8');
+  if (ab.length !== bb.length) return false;
+  return timingSafeEqual(ab, bb);
+}
+
 /* --------------------------- Password hashing --------------------------- */
 
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 };
