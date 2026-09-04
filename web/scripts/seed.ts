@@ -304,6 +304,10 @@ for (const p of props) {
       id: rid, organizationId: orgId, propertyId: p.id, connectionId: pmsId,
       externalId: `${p.code}-${rt.code}`, code: rt.code, name: rt.name,
       maxAdults: rt.maxAdults, maxChildren: rt.maxChildren, bedType: rt.bed, sizeSqm: rt.size,
+      // Alotmen nyata: tanpa ini properti terlihat punya nol kamar dan tidak
+      // ada satu pun tanggal yang bisa dijual.
+      totalRooms: rt.code === 'VILLA' ? 8 : rt.code === 'EXEC' ? 10 : 24,
+      source: 'pms',
       active: true, lastSyncedAt: ago(2 * HOUR), createdAt: ago(60 * DAY),
     }).run();
     roomTypes[p.id].push({ id: rid, code: rt.code, name: rt.name, rate, maxAdults: rt.maxAdults });
@@ -318,7 +322,15 @@ for (const p of props) {
       policies: rp.refundable
         ? 'Free cancellation up to 48 hours before arrival. 1 night deposit to hold.'
         : 'Non-refundable. Full prepayment required at confirmation.',
-      currency: 'IDR', active: true, lastSyncedAt: ago(2 * HOUR), createdAt: ago(60 * DAY),
+      currency: 'IDR',
+      // Tarif dasar diambil dari tipe kamar termurah properti ini; selisih tiap
+      // tipe disimpan terpisah supaya satu paket melayani semua tipe kamar.
+      baseRatePerNight: Math.min(...roomTypes[p.id].map((r) => r.rate)),
+      roomTypeSurcharges: JSON.stringify(Object.fromEntries(
+        roomTypes[p.id].map((r) => [r.code, r.rate - Math.min(...roomTypes[p.id].map((x) => x.rate))]),
+      )),
+      source: 'pms',
+      active: true, lastSyncedAt: ago(2 * HOUR), createdAt: ago(60 * DAY),
     }).run();
     ratePlans[p.id].push({ id: rid, code: rp.code, name: rp.name, refundable: rp.refundable, minStay: rp.minStay });
   }

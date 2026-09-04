@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { and, eq } from 'drizzle-orm';
-import { Building2, GitBranch, ShieldCheck, Users2 } from 'lucide-react';
+import { BedDouble, Building2, GitBranch, ShieldCheck, Users2 } from 'lucide-react';
 import { db, organizations, properties, users } from '@/db';
 import { canAny, requireSession } from '@/server/context';
 import { roleCatalogue } from '@/server/services/user-admin';
@@ -48,6 +48,13 @@ export default async function SettingsPage() {
         description="Organization defaults, properties, people, and the permission model they all run on."
         actions={
           <>
+          <Link
+            href="/settings/rooms"
+            className="focus-ring inline-flex h-9 items-center gap-2 rounded-md border border-border-strong bg-surface px-3.5 text-[13px] font-medium hover:bg-surface-2"
+          >
+            <BedDouble aria-hidden className="size-4" />
+            Kamar &amp; Tarif
+          </Link>
           <Link
             href="/settings/pipelines"
             className="focus-ring inline-flex h-9 items-center gap-2 rounded-md border border-border-strong bg-surface px-3.5 text-[13px] font-medium hover:bg-surface-2"

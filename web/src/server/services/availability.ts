@@ -8,6 +8,7 @@ import { newId } from '@/server/crypto';
 import { trackEvent, writeAudit } from '@/server/audit';
 import type { Session } from '@/server/auth';
 import { MockPmsAdapter } from './pms/mock-adapter';
+import { effectiveRate, listRatePlans, listRoomTypes, sellableRooms } from './inventory';
 import type { AvailabilityQuery, PmsAdapter } from './pms/types';
 import { nightsBetween } from '@/lib/utils';
 
@@ -75,7 +76,10 @@ export async function searchAvailability(
 ): Promise<AvailabilityOutcome> {
   const orgId = session.user.organizationId;
   const property = db
-    .select({ id: properties.id, code: properties.code, name: properties.name })
+    .select({
+      id: properties.id, code: properties.code, name: properties.name,
+      currency: properties.currency, inventorySource: properties.inventorySource,
+    })
     .from(properties)
     .where(and(eq(properties.id, input.propertyId), eq(properties.organizationId, orgId)))
     .get();
@@ -89,7 +93,90 @@ export async function searchAvailability(
 
   const nights = nightsBetween(input.checkIn, input.checkOut);
   const searchId = newId('avs');
+  const ctx = { organizationId: orgId, propertyId: input.propertyId, userId: session.user.id };
   const staleAfterMs = session.organization.availabilityStaleAfterMinutes * 60_000;
+
+  // Inventaris milik CRM. Hotel yang mendefinisikan kamar dan tarifnya sendiri
+  // tidak perlu PMS untuk menjawab "masih ada kamar?": jawabannya adalah alotmen
+  // dikurangi reservasi yang menumpuk pada rentang tanggal itu. Sebelumnya jalur
+  // ini tidak ada, sehingga properti tanpa PMS selalu berakhir di konfirmasi
+  // manual meskipun datanya lengkap.
+  if (property.inventorySource === 'crm') {
+    const checkedAt = new Date();
+    const started = Date.now();
+    const roomTypes = listRoomTypes(orgId, input.propertyId).filter((r) => r.active);
+    const ratePlans = listRatePlans(orgId, input.propertyId).filter((p) => p.active);
+    const sourceLabel = 'Inventaris hotel (CRM)';
+
+    if (roomTypes.length === 0 || ratePlans.length === 0) {
+      db.insert(availabilitySearches).values({
+        id: searchId, organizationId: orgId, propertyId: input.propertyId, leadId: input.leadId ?? null,
+        connectionId: null, actorUserId: session.user.id, checkIn: input.checkIn, checkOut: input.checkOut,
+        nights, rooms: input.rooms, adults: input.adults, children: input.children,
+        rateContext: input.rateContext ?? null, status: 'error', sourceKind: 'crm',
+        sourceLabel, latencyMs: 0, checkedAt,
+      }).run();
+      return {
+        ok: false, searchId, kind: 'error', checkedAt, sourceLabel, lastKnown: null,
+        message: 'Properti ini belum punya tipe kamar atau paket tarif yang aktif.',
+        recovery: 'Buka Pengaturan → Kamar & Tarif, lalu definisikan minimal satu tipe kamar dan satu paket tarif.',
+      };
+    }
+
+    const rows: AvailabilityRow[] = [];
+    for (const room of roomTypes) {
+      const free = sellableRooms(room, input.checkIn, input.checkOut);
+      // Kapasitas orang membatasi kamar sama nyatanya seperti jumlah kamar.
+      const fitsParty = room.maxAdults * input.rooms >= input.adults
+        && room.maxChildren * input.rooms >= input.children;
+      for (const plan of ratePlans) {
+        const rate = effectiveRate(plan, room.code);
+        const restrictions: string[] = [];
+        if (nights < plan.minStay) restrictions.push(`Minimal ${plan.minStay} malam`);
+        if (!fitsParty) restrictions.push(`Kapasitas ${room.maxAdults} dewasa / ${room.maxChildren} anak per kamar`);
+        if (!plan.refundable) restrictions.push('Tidak dapat dibatalkan');
+        const blocked = free < input.rooms || nights < plan.minStay || !fitsParty;
+        rows.push({
+          roomTypeId: room.id, roomTypeName: room.name, roomTypeCode: room.code,
+          ratePlanId: plan.id, ratePlanName: plan.name, ratePlanCode: plan.code,
+          sellableQty: free, ratePerNight: rate,
+          totalForStay: rate * nights * input.rooms,
+          currency: plan.currency, restrictions, inclusions: plan.inclusionList,
+          state: blocked ? 'unavailable' : 'live',
+        });
+      }
+    }
+
+    const latencyMs = Date.now() - started;
+    db.insert(availabilitySearches).values({
+      id: searchId, organizationId: orgId, propertyId: input.propertyId, leadId: input.leadId ?? null,
+      connectionId: null, actorUserId: session.user.id, checkIn: input.checkIn, checkOut: input.checkOut,
+      nights, rooms: input.rooms, adults: input.adults, children: input.children,
+      rateContext: input.rateContext ?? null, status: 'success', sourceKind: 'crm',
+      sourceLabel, latencyMs, checkedAt,
+    }).run();
+
+    for (const row of rows) {
+      db.insert(availabilitySnapshots).values({
+        id: newId('avn'), organizationId: orgId, searchId,
+        roomTypeId: row.roomTypeId, roomTypeName: row.roomTypeName,
+        ratePlanId: row.ratePlanId, ratePlanName: row.ratePlanName,
+        sellableQty: row.sellableQty, ratePerNight: row.ratePerNight, currency: row.currency,
+        restrictions: JSON.stringify(row.restrictions), inclusions: JSON.stringify(row.inclusions),
+        state: row.state, checkedAt,
+      }).run();
+    }
+
+    trackEvent('availability_searched', ctx, { propertyId: input.propertyId, offers: rows.length });
+    writeAudit({
+      organizationId: orgId, propertyId: input.propertyId,
+      actorUserId: session.user.id, actorName: session.user.name,
+      action: 'availability.searched', entityType: 'availability_search', entityId: searchId,
+      summary: `Ketersediaan dicek ${input.checkIn} → ${input.checkOut} (${input.rooms} kamar) dari inventaris hotel`,
+    });
+
+    return { ok: true, searchId, rows, checkedAt, sourceLabel, latencyMs, stale: false };
+  }
 
   // No connector configured: the product still works, but only via explicit manual confirmation.
   if (!connection) {
@@ -128,7 +215,6 @@ export async function searchAvailability(
     simulate: input.simulate,
   });
 
-  const ctx = { organizationId: orgId, propertyId: input.propertyId, userId: session.user.id };
 
   if (!result.ok) {
     db.insert(availabilitySearches).values({

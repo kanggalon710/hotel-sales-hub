@@ -11,8 +11,10 @@ import type { Session } from '@/server/auth';
  */
 
 export class LifecycleError extends Error {
-  constructor(message: string, readonly field?: string) {
+  readonly field?: string;
+  constructor(message: string, field?: string) {
     super(message);
+    this.field = field;
     this.name = 'LifecycleError';
   }
 }

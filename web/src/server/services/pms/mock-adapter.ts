@@ -31,7 +31,10 @@ export class MockPmsAdapter implements PmsAdapter {
   readonly id = 'pms-mock';
   readonly supportsWrite = true;
 
-  constructor(readonly label = 'Opera Cloud (sandbox adapter)') {}
+  readonly label: string;
+  constructor(label = 'Opera Cloud (sandbox adapter)') {
+    this.label = label;
+  }
 
   async searchAvailability(query: AvailabilityQuery): Promise<AvailabilityResult> {
     const started = Date.now();

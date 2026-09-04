@@ -7,8 +7,10 @@ import { newId } from '@/server/crypto';
 import { parseJson } from '@/lib/utils';
 
 export class PipelineError extends Error {
-  constructor(message: string, readonly field?: string) {
+  readonly field?: string;
+  constructor(message: string, field?: string) {
     super(message);
+    this.field = field;
     this.name = 'PipelineError';
   }
 }

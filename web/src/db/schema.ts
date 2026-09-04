@@ -38,6 +38,10 @@ export const organizations = sqliteTable('organizations', {
   quotationValidityHours: integer('quotation_validity_hours').notNull().default(48),
   firstResponseSlaMinutes: integer('first_response_sla_minutes').notNull().default(15),
   availabilityStaleAfterMinutes: integer('availability_stale_after_minutes').notNull().default(15),
+  /** Berapa hari setelah check-out ucapan terima kasih dan permintaan ulasan jatuh tempo. */
+  postStayFollowUpDays: integer('post_stay_follow_up_days').notNull().default(1),
+  /** Berapa hari setelah check-out tamu diingatkan untuk menginap lagi. */
+  winBackAfterDays: integer('win_back_after_days').notNull().default(150),
   createdAt: createdAt(),
 });
 
@@ -52,6 +56,15 @@ export const properties = sqliteTable(
     country: text('country'),
     timezone: text('timezone'),
     currency: text('currency'),
+    /**
+     * Siapa pemilik inventaris kamar properti ini.
+     *   'crm' - hotel mendefinisikan kamar dan tarifnya di sini. Ketersediaan
+     *           dihitung CRM dari alotmen dikurangi reservasi yang menumpuk.
+     *   'pms' - PMS/CRS yang memiliki inventaris. Kamar dan tarif hanya cermin
+     *           yang disinkronkan, dan ketersediaan datang dari adapter.
+     * Default 'crm' karena sebuah hotel harus bisa beroperasi sebelum ada PMS.
+     */
+    inventorySource: text('inventory_source').notNull().default('crm'),
     taxPercent: real('tax_percent'),
     servicePercent: real('service_percent'),
     active: integer('active', { mode: 'boolean' }).notNull().default(true),
@@ -627,9 +640,19 @@ export const roomTypeReferences = sqliteTable(
     maxChildren: integer('max_children').notNull().default(1),
     bedType: text('bed_type'),
     sizeSqm: integer('size_sqm'),
+    description: text('description'),
+    /**
+     * Jumlah kamar fisik bertipe ini. Inilah alotmen yang dipakai CRM untuk
+     * menghitung ketersediaan saat properti bermodus 'crm'. Bernilai 0 pada
+     * baris yang dicerminkan dari PMS, karena di sana PMS yang berwenang.
+     */
+    totalRooms: integer('total_rooms').notNull().default(0),
+    /** 'crm' bila dibuat orang di aplikasi ini, 'pms' bila hasil sinkronisasi. */
+    source: text('source').notNull().default('crm'),
     active: integer('active', { mode: 'boolean' }).notNull().default(true),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp_ms' }),
     createdAt: createdAt(),
+    updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex('room_type_prop_code_uq').on(t.propertyId, t.code)],
 );
@@ -650,9 +673,18 @@ export const ratePlanReferences = sqliteTable(
     inclusions: text('inclusions').notNull().default('[]'),
     policies: text('policies'),
     currency: text('currency').notNull().default('IDR'),
+    /**
+     * Tarif dasar per kamar per malam, sebelum pajak dan servis. Dipakai saat
+     * properti bermodus 'crm'; pada modus 'pms' harga datang dari adapter.
+     */
+    baseRatePerNight: real('base_rate_per_night').notNull().default(0),
+    /** Selisih tarif per tipe kamar, JSON {roomTypeCode: tambahanPerMalam}. */
+    roomTypeSurcharges: text('room_type_surcharges').notNull().default('{}'),
+    source: text('source').notNull().default('crm'),
     active: integer('active', { mode: 'boolean' }).notNull().default(true),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp_ms' }),
     createdAt: createdAt(),
+    updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex('rate_plan_prop_code_uq').on(t.propertyId, t.code)],
 );
@@ -877,6 +909,11 @@ export const reservationRequests = sqliteTable(
     internalNote: text('internal_note'),
     requestedByUserId: text('requested_by_user_id').references(() => users.id),
     assignedToUserId: text('assigned_to_user_id').references(() => users.id),
+    /**
+     * Diisi saat sapuan after-sales sudah memproses inap ini. Tanpa penanda,
+     * sapuan berikutnya akan membuat tugas duplikat setiap kali dijalankan.
+     */
+    stayCompletedAt: integer('stay_completed_at', { mode: 'timestamp_ms' }),
     submittedAt: integer('submitted_at', { mode: 'timestamp_ms' }),
     reviewStartedAt: integer('review_started_at', { mode: 'timestamp_ms' }),
     decidedAt: integer('decided_at', { mode: 'timestamp_ms' }),

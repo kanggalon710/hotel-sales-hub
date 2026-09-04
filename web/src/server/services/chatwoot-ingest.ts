@@ -214,8 +214,10 @@ export function processWebhookEvent(eventId: string): IngestOutcome {
 
 /** Raised when a human must fix configuration; retrying unchanged cannot help. */
 class MappingError extends Error {
-  constructor(message: string, readonly actionRequired: string) {
+  readonly actionRequired: string;
+  constructor(message: string, actionRequired: string) {
     super(message);
+    this.actionRequired = actionRequired;
     this.name = 'MappingError';
   }
 }

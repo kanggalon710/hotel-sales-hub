@@ -15,6 +15,20 @@
       "when": 1788503645260,
       "tag": "0001_pipeline_templates",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788529979753,
+      "tag": "0002_inventory_ownership",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788530555200,
+      "tag": "0003_after_sales",
+      "breakpoints": true
     }
   ]
 }

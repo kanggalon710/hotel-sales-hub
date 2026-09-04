@@ -14,8 +14,10 @@ import type { Session } from '@/server/auth';
 import { nightsBetween } from '@/lib/utils';
 
 export class HandoffError extends Error {
-  constructor(message: string, readonly missing: string[] = []) {
+  readonly missing: string[];
+  constructor(message: string, missing: string[] = []) {
     super(message);
+    this.missing = missing;
     this.name = 'HandoffError';
   }
 }
