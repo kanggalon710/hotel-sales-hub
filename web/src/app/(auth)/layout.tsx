@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { BedDouble, MessagesSquare, ShieldCheck, Zap } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -11,15 +12,31 @@ const PILLARS = [
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[1.05fr_minmax(420px,0.95fr)]">
-      {/* Brand panel, hidden on small screens where the form is the whole job. */}
-      <aside className="relative hidden overflow-hidden border-r border-border bg-bg-elevated lg:flex lg:flex-col lg:justify-between lg:p-12">
+      {/*
+        Panel merek, disembunyikan pada layar kecil tempat formulir adalah
+        seluruh pekerjaannya.
+
+        Fotonya dipilih senada dengan navigasi: senja biru tua dengan cahaya
+        hangat sebagai satu-satunya aksen. Panel ini menjadi permukaan gelap,
+        jadi seluruh teks di dalamnya memakai tinta terangnya sendiri, bukan
+        --ink halaman.
+      */}
+      <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-12">
+        <Image
+          src="/brand/signin.jpg"
+          alt=""
+          fill
+          priority
+          sizes="(min-width: 1024px) 52vw, 0px"
+          className="object-cover"
+        />
+        {/* Tabir menjamin kontras teks di atas bagian foto yang paling terang. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-70"
+          className="pointer-events-none absolute inset-0"
           style={{
             background:
-              'radial-gradient(900px 480px at 12% -8%, color-mix(in srgb, var(--primary) 22%, transparent), transparent 62%),' +
-              'radial-gradient(700px 420px at 92% 108%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%)',
+              'linear-gradient(180deg, rgb(16 24 40 / 0.74) 0%, rgb(16 24 40 / 0.52) 34%, rgb(16 24 40 / 0.92) 100%)',
           }}
         />
         <div className="relative">
@@ -27,37 +44,37 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-on-primary shadow-e2">
               <BedDouble aria-hidden className="size-5" />
             </span>
-            <span className="t-heading">Hotel Sales Hub</span>
+            <span className="t-heading text-white">Hotel Sales Hub</span>
           </Link>
         </div>
 
         <div className="relative max-w-lg">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent-ink">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/70">
             Sales &amp; Guest Relationship Hub
           </p>
-          <h1 className="mt-4 text-[2.6rem] font-semibold leading-[1.08] tracking-[-0.025em]">
+          <h1 className="mt-4 text-[2.6rem] font-semibold leading-[1.08] tracking-[-0.025em] text-white">
             Every inquiry becomes a room night, or an answer why not.
           </h1>
-          <p className="mt-4 max-w-md text-sm leading-6 text-ink-2">
+          <p className="mt-4 max-w-md text-sm leading-6 text-white/75">
             One operating surface across conversations, availability, quotations, and the front-office handoff.
           </p>
 
           <ul className="mt-9 space-y-5">
             {PILLARS.map((p) => (
               <li key={p.title} className="flex gap-3.5">
-                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-primary-ink ring-1 ring-inset ring-border">
+                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/12 text-white ring-1 ring-inset ring-white/20">
                   <p.icon aria-hidden className="size-4" />
                 </span>
                 <div>
-                  <p className="text-[13px] font-semibold text-ink">{p.title}</p>
-                  <p className="mt-0.5 max-w-sm text-[13px] leading-5 text-ink-2">{p.body}</p>
+                  <p className="text-[13px] font-semibold text-white">{p.title}</p>
+                  <p className="mt-0.5 max-w-sm text-[13px] leading-5 text-white/70">{p.body}</p>
                 </div>
               </li>
             ))}
           </ul>
         </div>
 
-        <p className="relative font-mono text-[11px] text-ink-3">
+        <p className="relative font-mono text-[11px] text-white/55">
           Chatwoot owns conversations · PMS/CRS owns inventory · CRM owns the sale
         </p>
       </aside>
