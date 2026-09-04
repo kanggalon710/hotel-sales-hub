@@ -1,0 +1,9 @@
+# OS
+.DS_Store
+
+# Local data and secrets never belong in the repo
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+.env
+.env.local

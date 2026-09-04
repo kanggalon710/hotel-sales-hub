@@ -1,0 +1,383 @@
+@import "tailwindcss";
+
+/*
+ * Hotel Sales Hub — design system
+ *
+ * Light-first (product decision, superseding PRD 15.1 "dark-first").
+ * Direction: an operations desk, not a dashboard. Warm paper ground, near-black
+ * ink, hairline structure, generous whitespace, one confident action colour used
+ * sparingly, and a real typographic scale so hierarchy comes from size and
+ * weight — not from boxes and badges.
+ *
+ * Responsive contract (documented decisions, not accidents):
+ *   < 640   phone     one column · sidebar as drawer · sheets from the bottom ·
+ *                     kanban shows one stage at a time with a stage picker
+ *   640–1023 tablet   two columns where content allows · sidebar as drawer
+ *   1024–1439 laptop  persistent sidebar (240px) · two-column workspaces
+ *   ≥ 1440  desktop   three-column workspaces · content capped at 1440px
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Ground: a light blue wash. Content sits on white above it. */
+  --bg: #eef4fc;
+  --bg-gradient: linear-gradient(180deg, #e4edfa 0%, #f4f9ff 44%, #edf4fd 100%);
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #e8f0fa;
+  --surface-3: #ffffff;
+  --surface-inset: #f5f9fe;
+  --border: #dbe6f3;
+  --border-strong: #bdd0e7;
+
+  /* Navigation carries the blue; the workspace stays white. */
+  --sidebar: linear-gradient(180deg, #dbe8f8 0%, #e7f0fb 62%, #eaf2fc 100%);
+  --sidebar-border: #cbdcef;
+  --sidebar-active: #ffffff;
+  /* Kanban lanes sit deeper than the ground so white cards lift off them. */
+  --lane: #dde8f7;
+
+  /* Cool near-black, so ink and ground share a temperature. */
+  --ink: #0d1b2a;
+  --ink-2: #42566b;
+  --ink-3: #5a7189;
+  --ink-inverse: #ffffff;
+
+  --primary: #0070f3;
+  --primary-hover: #005fd1;
+  --primary-active: #004fae;
+  --primary-ink: #0a5bc4;
+  --primary-soft: rgb(0 112 243 / 0.09);
+  --on-primary: #ffffff;
+
+  /* Hospitality gold: the one warm note against all the blue. */
+  --accent: #96661a;
+  --accent-ink: #7d5512;
+  --accent-soft: rgb(150 102 26 / 0.11);
+  --on-accent: #ffffff;
+
+  --success: #0f7f52;
+  --success-ink: #0b6b44;
+  --success-soft: rgb(15 127 82 / 0.11);
+  --warning: #a8620a;
+  --warning-ink: #8a5008;
+  --warning-soft: rgb(168 98 10 / 0.12);
+  --danger: #c62d28;
+  --danger-ink: #ac221e;
+  --danger-soft: rgb(198 45 40 / 0.1);
+  --info: #0070f3;
+  --info-ink: #0a5bc4;
+  --info-soft: rgb(0 112 243 / 0.09);
+  --neutral-soft: rgb(66 86 107 / 0.09);
+
+  --ring: #0a5bc4;
+  --scrim: rgb(13 27 42 / 0.36);
+
+  --shadow-1: 0 1px 0 rgb(13 27 42 / 0.04);
+  --shadow-2: 0 2px 8px -2px rgb(13 27 42 / 0.09), 0 1px 0 rgb(13 27 42 / 0.04);
+  --shadow-3: 0 12px 32px -12px rgb(13 27 42 / 0.2), 0 2px 6px -2px rgb(13 27 42 / 0.08);
+  --shadow-4: 0 32px 64px -24px rgb(13 27 42 / 0.3), 0 4px 12px -4px rgb(13 27 42 / 0.12);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0b1220;
+  --bg-gradient: linear-gradient(180deg, #0d1726 0%, #0a1120 55%, #0b1322 100%);
+  --bg-elevated: #101a2b;
+  --surface: #121c2e;
+  --surface-2: #1b2639;
+  --surface-3: #16202f;
+  --surface-inset: #0e1626;
+  --border: #202c40;
+  --border-strong: #2e3d56;
+
+  --sidebar: linear-gradient(180deg, #101c2f 0%, #0c1422 100%);
+  --sidebar-border: #1e2a3d;
+  --sidebar-active: #1b2639;
+  --lane: #0f1828;
+
+  --ink: #e9eff8;
+  --ink-2: #a5b4c8;
+  --ink-3: #7f90a7;
+  --ink-inverse: #0d1b2a;
+
+  --primary: #0070f3;
+  --primary-hover: #1a80ff;
+  --primary-active: #0059c2;
+  --primary-ink: #74b2ff;
+  --primary-soft: rgb(0 112 243 / 0.18);
+  --on-primary: #ffffff;
+
+  --accent: #d79a3c;
+  --accent-ink: #e7b264;
+  --accent-soft: rgb(215 154 60 / 0.15);
+  --on-accent: #241804;
+
+  --success: #17976a;
+  --success-ink: #5cd6a3;
+  --success-soft: rgb(23 151 106 / 0.17);
+  --warning: #c07b12;
+  --warning-ink: #f0bb60;
+  --warning-soft: rgb(192 123 18 / 0.17);
+  --danger: #d84540;
+  --danger-ink: #ff938d;
+  --danger-soft: rgb(216 69 64 / 0.17);
+  --info: #0070f3;
+  --info-ink: #74b2ff;
+  --info-soft: rgb(0 112 243 / 0.18);
+  --neutral-soft: rgb(165 180 200 / 0.13);
+
+  --ring: #74b2ff;
+  --scrim: rgb(2 6 14 / 0.66);
+
+  --shadow-1: 0 1px 0 rgb(0 0 0 / 0.3);
+  --shadow-2: 0 2px 8px -2px rgb(0 0 0 / 0.5);
+  --shadow-3: 0 12px 32px -12px rgb(0 0 0 / 0.7);
+  --shadow-4: 0 32px 64px -24px rgb(0 0 0 / 0.8);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-inset: var(--surface-inset);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-lane: var(--lane);
+
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-inverse: var(--ink-inverse);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-ink: var(--primary-ink);
+  --color-primary-soft: var(--primary-soft);
+  --color-on-primary: var(--on-primary);
+
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+
+  --color-success: var(--success);
+  --color-success-ink: var(--success-ink);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-ink: var(--warning-ink);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-ink: var(--info-ink);
+  --color-info-soft: var(--info-soft);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* Headings use the same family, separated by size and weight instead. */
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+
+  --shadow-e1: var(--shadow-1);
+  --shadow-e2: var(--shadow-2);
+  --shadow-e3: var(--shadow-3);
+  --shadow-e4: var(--shadow-4);
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-quint: cubic-bezier(0.64, 0, 0.78, 0);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    background-image: var(--bg-gradient);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  h1, h2, h3, h4 {
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  code, kbd, samp, .font-mono {
+    font-family: var(--font-jetbrains), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .focus-ring:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ring);
+  }
+
+  ::selection {
+    background: var(--primary-soft);
+    color: var(--ink);
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 8px;
+    border: 2px solid var(--bg);
+  }
+}
+
+@layer utilities {
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-inset) 37%, var(--surface-2) 63%);
+    background-size: 400% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+    border-radius: var(--radius-sm);
+  }
+  @keyframes skeleton-shimmer {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+  }
+
+  /* Horizontal scrollers that behave: snap, no page overflow, visible edges */
+  .scroll-x {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+  .scroll-x > * { scroll-snap-align: start; }
+}
+
+
+/* ---- Type scale: seven steps, each with a job. Registered with @utility so
+   variants apply, e.g. `t-title sm:t-display` on a responsive page heading. ---- */
+@utility t-display {
+  font-size: 1.875rem;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+}
+@utility t-title {
+  font-size: 1.25rem;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.016em;
+}
+@utility t-heading {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -0.008em;
+}
+@utility t-body { font-size: 0.875rem; line-height: 1.55; }
+@utility t-small { font-size: 0.8125rem; line-height: 1.45; }
+@utility t-meta { font-size: 0.75rem; line-height: 1.4; color: var(--ink-3); }
+@utility t-label {
+  font-size: 0.6875rem;
+  line-height: 1.3;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ---- Surfaces: three levels, not one card for everything ---- */
+@utility panel {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+@utility panel-quiet {
+  background-color: var(--surface-inset);
+  border-radius: var(--radius-lg);
+}
+@utility hairline-t { border-top: 1px solid var(--border); }
+@utility hairline-b { border-bottom: 1px solid var(--border); }
+
+/* ---- Touch target ----
+   A small text link keeps its type size but gains a 36px hit area on a phone,
+   where the pointer is a fingertip. Above 640px the pointer is precise and the
+   link stays inline so it costs no vertical rhythm. */
+@utility tap {
+  @media (width < 40rem) {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+  }
+}
+
+/* ---- Motion utilities ---- */
+@keyframes stay-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.8); }
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes drawer-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+
+@utility stay-pulse { animation: stay-pulse 2.2s var(--ease-out-quint) infinite; }
+@utility rise-in { animation: rise-in 180ms var(--ease-out-quint) both; }
+@utility scrim-in { animation: scrim-in 140ms ease-out both; }
+@utility drawer-in { animation: drawer-in 220ms var(--ease-out-quint) both; }
+@utility sheet-in { animation: sheet-in 240ms var(--ease-out-quint) both; }
+@utility modal-in { animation: modal-in 180ms var(--ease-out-quint) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .stay-pulse { animation: none !important; opacity: 1 !important; }
+}
