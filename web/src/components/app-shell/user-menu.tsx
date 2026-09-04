@@ -23,14 +23,15 @@ export function UserMenu({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="focus-ring flex w-full cursor-pointer items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-surface-2"
+        className="focus-ring flex w-full cursor-pointer items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-sidebar-hover"
       >
         <Avatar name={name} size="md" />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[12px] font-medium text-ink">{name}</span>
-          <span className="block truncate text-[11px] text-ink-3">{roleSummary}</span>
+          {/* Pemicu ini duduk di sidebar gelap; panel melayangnya tetap terang. */}
+          <span className="block truncate text-[12px] font-medium text-sidebar-ink">{name}</span>
+          <span className="block truncate text-[11px] text-sidebar-ink-3">{roleSummary}</span>
         </span>
-        <ChevronDown aria-hidden className="size-3.5 shrink-0 text-ink-3" />
+        <ChevronDown aria-hidden className="size-3.5 shrink-0 text-sidebar-ink-3" />
       </button>
 
       {open ? (

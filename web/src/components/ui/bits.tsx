@@ -31,8 +31,11 @@ export function PersonChip({ name, meta }: { name: string | null | undefined; me
 }
 
 /**
- * Metrics live in one strip separated by hairlines — not a row of identical
- * boxes. The number is the biggest thing; the label sits under it.
+ * Empat kartu terpisah dengan jarak di antaranya, mengikuti rujukan Nexus CRM.
+ *
+ * Sebelumnya keempatnya menyatu dalam satu bilah yang dibelah garis rambut.
+ * Bentuk kartu terpisah membuat tiap angka berdiri sebagai satu objek, dan
+ * itulah yang membuatnya terbaca sekali pandang pada layar lebar.
  */
 export function MetricStrip({
   children,
@@ -47,9 +50,8 @@ export function MetricStrip({
     <section
       aria-label={label}
       className={cn(
-        // One bounded strip divided by hairlines, never a row of separate boxes.
-        'panel grid grid-cols-2 divide-x divide-y divide-border overflow-hidden',
-        'sm:divide-y-0 sm:grid-cols-[repeat(auto-fit,minmax(170px,1fr))]',
+        'grid grid-cols-2 gap-3',
+        'sm:grid-cols-[repeat(auto-fit,minmax(190px,1fr))] sm:gap-4',
         className,
       )}
     >
@@ -84,11 +86,13 @@ export function Metric({
   return (
     <Wrapper
       href={href}
-      className={cn('block px-4 py-4 sm:px-5', href && 'focus-ring cursor-pointer transition-colors hover:bg-surface-inset')}
+      className={cn(
+        'block rounded-md border border-border bg-surface px-4 py-4 shadow-e1 sm:px-5',
+        href && 'focus-ring cursor-pointer transition-colors hover:bg-surface-inset',
+      )}
     >
-      {/* Two lines are reserved for the label so a metric whose name wraps does
-          not push its number 15px below the one beside it. The strip reads as a
-          single row, so the numbers have to sit on a single line. */}
+      {/* Dua baris disediakan untuk label, supaya metrik yang namanya membungkus
+          tidak mendorong angkanya turun lebih rendah daripada tetangganya. */}
       <p className="t-label min-h-[2lh]">{label}</p>
       <p className={cn('tnum mt-1.5 text-[21px] font-semibold leading-none tracking-[-0.02em] sm:text-[26px]', toneText[tone])}>
         {value}

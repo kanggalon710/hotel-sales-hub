@@ -191,3 +191,57 @@ not. The browser pane emulates the layout viewport (`clientWidth` 375) but leave
 the latter, so the toast viewport landed off-screen and inflated `scrollWidth`.
 On a device the two agree. Confirm any fixed-position finding against
 `innerWidth === document.documentElement.clientWidth` before chasing it.
+
+
+## Palet: Nexus CRM (keluarga Untitled UI)
+
+Arah warna diambil dari berkas Figma rujukan *Nexus CRM — UI Design System &
+Screens*, dibaca lewat Figma MCP pada simpul `18:362` (layar Kontak) dan `5:3`
+(sidebar), bukan dikira-kira dari tangkapan layar. Pembacaan pertama saya dari
+gambar meleset di hampir semua nilai: sidebar saya kira gradien indigo, padahal
+ia `#101828` rata dan netral.
+
+### Sidebar
+
+| Peran | Nilai | Catatan |
+|---|---|---|
+| Latar | `#101828` | Rata, bukan gradien |
+| Butir aktif | `#1d2939` dengan teks putih | Radius 8px |
+| Butir tidak aktif | `#d0d5dd` | |
+| Label kelompok | `#475467` | 10px, semibold, tracking 0.8px |
+| Subjudul dan peran | `#667085` | |
+| Garis pemisah | `#1d2939` | |
+
+Sidebar adalah permukaan tersendiri, jadi ia membawa tintanya sendiri
+(`--sidebar-ink`, `--sidebar-ink-2`, `--sidebar-ink-3`, `--sidebar-label`).
+Memakai `--ink` halaman di sana akan menghasilkan tulisan gelap di atas latar
+gelap.
+
+### Ruang kerja
+
+| Peran | Nilai |
+|---|---|
+| Ground | `#f9fafb` |
+| Permukaan kartu | `#ffffff` |
+| Permukaan kedua | `#f2f4f7` |
+| Garis | `#eaecf0`, tegas `#d0d5dd` |
+| Tinta | `#101828` · `#475467` · `#667085` |
+| Merek | `#6938ef`, tekan `#5925dc`, lembut `#f4f3ff` |
+| Berhasil | `#12b76a` / `#027a48` pada `#ecfdf3` |
+| Peringatan | `#f79009` / `#b54708` pada `#fffaeb` |
+| Bahaya | `#f04438` / `#b42318` pada `#fef3f2` |
+| Informasi | `#2e90fa` / `#175cd3` pada `#eff8ff` |
+
+Huruf tetap Inter, sama seperti rujukan. Kartu memakai radius 8px, bukan 12px:
+tepi yang lebih lunak membuat tabel sepadat ini terasa kabur.
+
+### Yang berubah bentuknya
+
+Metrik kembali menjadi empat kartu terpisah dengan jarak di antaranya, mengikuti
+rujukan. Sebelumnya keempatnya menyatu dalam satu bilah yang dibelah garis
+rambut, atas permintaan sebelumnya. Bentuk kartu terpisah membuat tiap angka
+berdiri sebagai satu objek.
+
+Arah biru muda yang dipakai sebelum ini digantikan seluruhnya. Itu juga
+keputusan yang diminta sebelumnya, jadi perubahannya disebutkan di sini agar
+tidak tampak seperti kelalaian.

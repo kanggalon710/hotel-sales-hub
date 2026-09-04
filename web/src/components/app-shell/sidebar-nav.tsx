@@ -34,7 +34,7 @@ function NavList({ groups, onNavigate }: { groups: NavGroup[]; onNavigate?: () =
     <nav aria-label="Main" className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
       {groups.map((group) => (
         <div key={group.label}>
-          <p className="t-label px-3 pb-2">{group.label}</p>
+          <p className="t-label px-3 pb-2 text-sidebar-label">{group.label}</p>
           <ul className="space-y-px">
             {group.items.map((item) => {
               const active = isActive(pathname, item.href, item.exact);
@@ -48,11 +48,11 @@ function NavList({ groups, onNavigate }: { groups: NavGroup[]; onNavigate?: () =
                     className={cn(
                       'focus-ring flex h-10 items-center gap-3 rounded-lg px-3 text-[14px] transition-colors duration-150 lg:h-9 lg:text-[13.5px]',
                       active
-                        ? 'bg-sidebar-active font-medium text-ink shadow-e1'
-                        : 'text-ink-2 hover:bg-white/55 hover:text-ink',
+                        ? 'bg-sidebar-active font-medium text-sidebar-ink'
+                        : 'text-sidebar-ink-2 hover:bg-sidebar-hover hover:text-sidebar-ink',
                     )}
                   >
-                    <Icon aria-hidden className={cn('size-[18px] shrink-0', active ? 'text-ink' : 'text-ink-3')} strokeWidth={active ? 2.2 : 1.8} />
+                    <Icon aria-hidden className={cn('size-[18px] shrink-0', active ? 'text-sidebar-ink' : 'text-sidebar-ink-3')} strokeWidth={active ? 2.2 : 1.8} />
                     <span className="truncate">{item.label}</span>
                   </Link>
                 </li>
@@ -68,10 +68,10 @@ function NavList({ groups, onNavigate }: { groups: NavGroup[]; onNavigate?: () =
 function Brand() {
   return (
     <div className="flex h-16 items-center gap-2.5 px-5">
-      <span className="flex size-7 items-center justify-center rounded-md bg-ink text-ink-inverse">
+      <span className="flex size-7 items-center justify-center rounded-md bg-primary text-on-primary">
         <BedDouble aria-hidden className="size-4" />
       </span>
-      <span className="t-heading">Hotel Sales Hub</span>
+      <span className="t-heading text-sidebar-ink">Hotel Sales Hub</span>
     </div>
   );
 }
@@ -80,7 +80,7 @@ export function DesktopSidebar({ groups, footer }: { groups: NavGroup[]; footer:
   return (
     <aside
       className="sticky top-0 hidden h-dvh w-[240px] shrink-0 flex-col self-start border-r border-sidebar-border lg:flex"
-      style={{ backgroundImage: 'var(--sidebar)' }}
+      style={{ background: 'var(--sidebar)' }}
     >
       <Brand />
       <NavList groups={groups} />
@@ -131,7 +131,7 @@ export function MobileNav({ groups, footer }: { groups: NavGroup[]; footer: Reac
             aria-modal="true"
             aria-label="Navigation"
             className="relative flex h-dvh w-[300px] max-w-[85vw] flex-col shadow-e4"
-            style={{ backgroundImage: 'var(--sidebar)', animation: 'drawer-in 220ms var(--ease-out-quint) both' }}
+            style={{ background: 'var(--sidebar)', animation: 'drawer-in 220ms var(--ease-out-quint) both' }}
           >
             <div className="flex items-center justify-between pr-3">
               <Brand />
