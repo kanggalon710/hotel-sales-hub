@@ -790,3 +790,27 @@ export function retryEvents(organizationId: string, eventIds?: string[]) {
   }
   return { attempted: pending.length, recovered };
 }
+
+/**
+ * Tautan ke percakapan di Chatwoot, dibentuk saat ditampilkan.
+ *
+ * Sebelumnya tautan ini dibekukan ke dalam baris pada saat event masuk. Begitu
+ * Base URL koneksi diubah - misalnya berpindah dari instance demo ke instance
+ * sungguhan - setiap tautan lama tetap menunjuk host lama tanpa memberi tanda
+ * apa pun, dan yang mengeklik hanya menemui domain yang tidak ada. Host adalah
+ * milik koneksi, bukan milik percakapan, jadi dibaca dari koneksi setiap kali.
+ */
+export function conversationDeepLink(conversation: {
+  connectionId: string;
+  externalConversationId: string;
+  deepLink?: string | null;
+}) {
+  const connection = db
+    .select({ baseUrl: integrationConnections.baseUrl, accountId: integrationConnections.externalAccountId })
+    .from(integrationConnections)
+    .where(eq(integrationConnections.id, conversation.connectionId))
+    .get();
+  if (!connection?.baseUrl) return conversation.deepLink ?? null;
+  const base = connection.baseUrl.replace(/\/$/, '');
+  return `${base}/app/accounts/${connection.accountId ?? '1'}/conversations/${conversation.externalConversationId}`;
+}

@@ -17,6 +17,7 @@ import { Avatar, Metric, MetricStrip, Ref } from '@/components/ui/bits';
 import { ListState, PermissionDenied } from '@/components/ui/states';
 import { ActivityTimeline } from '@/components/leads/activity-timeline';
 import { formatMoney, formatStayDate, formatStayRange, parseJson, relativeTime, titleCase } from '@/lib/utils';
+import { conversationDeepLink } from '@/server/services/chatwoot-ingest';
 
 export const dynamic = 'force-dynamic';
 
@@ -280,9 +281,9 @@ export default async function Guest360Page({ params }: { params: Promise<{ id: s
                       <p className="mt-0.5 font-mono text-[10px] text-ink-3">
                         {titleCase(c.conversationStatus ?? '–')} · {relativeTime(c.lastMessageAt)}
                       </p>
-                      {c.deepLink ? (
+                      {conversationDeepLink(c) ? (
                         <a
-                          href={c.deepLink}
+                          href={conversationDeepLink(c)!}
                           target="_blank"
                           rel="noreferrer noopener"
                           className="focus-ring tap mt-1 inline-flex items-center gap-1 rounded text-[11px] text-primary-ink hover:underline"

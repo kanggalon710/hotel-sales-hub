@@ -16,6 +16,7 @@ import {
 import { latestSearchForLead } from '@/server/services/availability';
 import { buildStaySteps } from '@/server/lead-progress';
 import { templateForLead } from '@/server/services/pipelines';
+import { conversationDeepLink } from '@/server/services/chatwoot-ingest';
 import { STAGE_KIND_MEANING } from '@/lib/pipeline';
 import { PageShell } from '@/components/page-header';
 import { Card, CardBody, CardHeader, DataRow } from '@/components/ui/card';
@@ -538,9 +539,9 @@ export default async function LeadCockpitPage({ params }: { params: Promise<{ id
                     Chatwoot remains the system of record for messages. The CRM stores identifiers and a deep link,
                     not the transcript.
                   </p>
-                  {conversation.deepLink ? (
+                  {conversationDeepLink(conversation) ? (
                     <a
-                      href={conversation.deepLink}
+                      href={conversationDeepLink(conversation)!}
                       target="_blank"
                       rel="noreferrer noopener"
                       className="focus-ring tap inline-flex items-center gap-1.5 rounded text-[12px] font-medium text-primary-ink hover:underline"
