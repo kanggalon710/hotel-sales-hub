@@ -17,21 +17,35 @@ export type ChatwootPayload = {
   event?: string;
   id?: number | string;
   account?: { id?: number | string };
+  account_id?: number | string;
   inbox?: { id?: number | string; name?: string; channel_type?: string };
   /**
-   * Untuk `conversation_updated` dan `conversation_status_changed`, Chatwoot
-   * menyebar atribut percakapan di tingkat atas, sehingga id inbox dan kanalnya
-   * ada di akar payload, bukan di dalam `inbox` maupun `conversation`.
+   * Chatwoot mengirim dua bentuk yang berbeda, dan perbedaannya menentukan
+   * apakah sebuah prospek terbentuk atau tidak.
+   *
+   * `message_created` membungkus semuanya sebagai objek: `inbox`, `conversation`,
+   * `sender`. Sedangkan `conversation_created`, `conversation_updated`, dan
+   * `conversation_status_changed` menyebar atribut percakapan di akar payload,
+   * sehingga id inbox menjadi `inbox_id`, kanalnya `channel`, kontaknya
+   * `meta.sender`, dan agennya `meta.assignee`.
+   *
    * https://www.chatwoot.com/hc/user-guide/articles/1677693021-how-to-use-webhooks
    */
   inbox_id?: number | string;
   channel?: string;
+  meta?: {
+    sender?: { id?: number | string; name?: string; phone_number?: string; email?: string; identifier?: string };
+    assignee?: { id?: number | string; name?: string };
+  };
   conversation?: {
     id?: number | string;
     status?: string;
     inbox_id?: number | string;
     labels?: string[];
-    meta?: { assignee?: { id?: number | string; name?: string } };
+    meta?: {
+      sender?: { id?: number | string; name?: string; phone_number?: string; email?: string; identifier?: string };
+      assignee?: { id?: number | string; name?: string };
+    };
   };
   contact?: { id?: number | string; name?: string; phone_number?: string; email?: string; identifier?: string };
   sender?: { id?: number | string; name?: string; phone_number?: string; email?: string; type?: string };
@@ -66,7 +80,11 @@ export function recordWebhookEvent(input: {
   correlationId: string;
 }) {
   const eventType = input.payload.event ?? 'unknown';
-  const accountId = str(input.payload.account?.id);
+  // Bentuk bersarang membungkusnya sebagai `account`, bentuk datar menaruhnya
+  // sebagai `account_id`. Sidik jari deduplikasi ikut memakainya, jadi kalau
+  // hanya satu bentuk yang terbaca, dua bentuk untuk event yang sama tidak akan
+  // pernah saling dikenali sebagai ulangan.
+  const accountId = str(input.payload.account?.id) ?? str(input.payload.account_id);
 
   // Identity is derived from the entity the event is about, not the wall clock,
   // so a retried delivery collapses onto the same fingerprint.
@@ -238,7 +256,7 @@ type ApplyResult = {
 };
 
 function applyEvent(eventId: string, connectionId: string | null, payload: ChatwootPayload): ApplyResult {
-  const accountId = str(payload.account?.id);
+  const accountId = str(payload.account?.id) ?? str(payload.account_id);
 
   const connection = connectionId
     ? db.select().from(integrationConnections).where(eq(integrationConnections.id, connectionId)).get()
@@ -275,7 +293,15 @@ function applyEvent(eventId: string, connectionId: string | null, payload: Chatw
 
   /* ------------------------------ contact events ------------------------------ */
 
-  const contactPayload = payload.contact ?? (payload.sender?.type === 'contact' ? payload.sender : null);
+  // Tiga tempat, satu tamu. Tanpa cabang `meta.sender`, setiap
+  // `conversation_created` dari Chatwoot asli berakhir sebagai "tanpa kontak
+  // yang bisa dikenali" dan tidak pernah menjadi prospek.
+  const contactPayload =
+    payload.contact
+    ?? (payload.sender?.type === 'contact' ? payload.sender : null)
+    ?? payload.conversation?.meta?.sender
+    ?? payload.meta?.sender
+    ?? null;
 
   if (eventType === 'contact_created' || eventType === 'contact_updated') {
     if (!contactPayload) return { status: 'ignored', summary: 'Contact event without a contact body.', organizationId: orgId };
@@ -318,11 +344,26 @@ function applyEvent(eventId: string, connectionId: string | null, payload: Chatw
         .get()
     : undefined;
 
-  // No random default property: an unmapped inbox is a configuration problem.
+  // Tidak ada properti bawaan yang dipilih diam-diam: inbox tanpa pemetaan
+  // adalah masalah konfigurasi, bukan sesuatu untuk ditebak.
   if (!existingConversation && (!inboxRule || inboxRule.status !== 'mapped' || !inboxRule.propertyId)) {
+    const inboxName = payload.inbox?.name ?? null;
+    if (!externalInboxId) {
+      // Membedakan "belum dipetakan" dari "tidak terbaca" penting: keduanya
+      // berakhir di dead letter, tetapi yang pertama diperbaiki lewat halaman
+      // Pemetaan dan yang kedua tidak akan pernah membaik betapa pun sering
+      // dipetakan. Kunci payload ikut disebut agar bentuk yang tak dikenal
+      // bisa dilacak tanpa membuka basis data.
+      throw new MappingError(
+        `Event "${eventType}" tidak memuat id inbox yang bisa dibaca (kunci yang diterima: ${Object.keys(payload).join(', ') || 'tidak ada'})`,
+        'Ini bentuk payload yang belum dikenali konektor, bukan pemetaan yang hilang. Laporkan kunci di atas agar bentuknya ditambahkan.',
+      );
+    }
     throw new MappingError(
-      `Inbox ${externalInboxId ?? 'unknown'} (${payload.inbox?.name ?? 'unnamed'}) is not mapped to a property`,
-      'Map this inbox to a property in Integrations → Mappings, then retry.',
+      inboxRule
+        ? `Inbox ${externalInboxId}${inboxName ? ` ("${inboxName}")` : ''} sudah dikenal tetapi belum diarahkan ke properti`
+        : `Inbox ${externalInboxId}${inboxName ? ` ("${inboxName}")` : ''} belum dipetakan ke properti mana pun`,
+      'Petakan inbox ini ke sebuah properti di Integrasi → Pemetaan, lalu ulangi eventnya.',
     );
   }
 
@@ -337,7 +378,10 @@ function applyEvent(eventId: string, connectionId: string | null, payload: Chatw
 
   /* ------------------------------ agent mapping ------------------------------ */
 
-  const assigneeExternalId = str(payload.conversation?.meta?.assignee?.id) ?? str(payload.assignee?.id);
+  const assigneeExternalId =
+    str(payload.conversation?.meta?.assignee?.id)
+    ?? str(payload.meta?.assignee?.id)
+    ?? str(payload.assignee?.id);
   let assignedUserId: string | null = existingConversation?.assignedUserId ?? null;
 
   if (assigneeExternalId) {
@@ -354,9 +398,11 @@ function applyEvent(eventId: string, connectionId: string | null, payload: Chatw
       .get();
 
     if (!agentRule || agentRule.status !== 'mapped' || !agentRule.userId) {
+      const agentName =
+        payload.conversation?.meta?.assignee?.name ?? payload.meta?.assignee?.name ?? payload.assignee?.name ?? null;
       throw new MappingError(
-        `Assigned agent ${assigneeExternalId} is not mapped to a CRM user`,
-        'Map this Chatwoot agent to a CRM user with access to this property, then retry.',
+        `Agen ${assigneeExternalId}${agentName ? ` (${agentName})` : ''} belum dipetakan ke pengguna CRM`,
+        'Petakan agen Chatwoot ini ke pengguna CRM yang punya akses ke properti tersebut, lalu ulangi eventnya.',
       );
     }
     assignedUserId = agentRule.userId;

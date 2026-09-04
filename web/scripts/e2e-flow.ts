@@ -27,7 +27,9 @@ let pass = 0, fail = 0, gap = 0;
 const step = (n: string) => console.log(`\n${'─'.repeat(64)}\n▶ ${n}`);
 const ok = (m: string) => { pass++; console.log(`  ✔ ${m}`); };
 const bad = (m: string) => { fail++; console.log(`  ✘ ${m}`); };
-const missing = (m: string) => { gap++; console.log(`  ◻ BELUM ADA: ${m}`); };
+// Disimpan agar langkah yang belum ada bisa ditandai tanpa dianggap gagal.
+const missing = (m: string) => { gap += 1; console.log(`  ◻ BELUM ADA: ${m}`); };
+void missing;
 
 /* ---------------------------------------------------------------- setup -- */
 const org = db.select().from(s.organizations).get();
@@ -67,7 +69,8 @@ const rt = createRoomType(org.id, propertyId, {
   code: 'DLXK', name: 'Deluxe King', totalRooms: 12, maxAdults: 2, maxChildren: 1,
   bedType: 'King', sizeSqm: 32, description: 'Kamar deluxe dengan ranjang king', active: true,
 });
-rt.ok ? ok('Tipe kamar "Deluxe King" dibuat, alotmen 12 kamar') : bad(`Tipe kamar gagal: ${rt.reason}`);
+if (rt.ok) ok('Tipe kamar "Deluxe King" dibuat, alotmen 12 kamar');
+else bad(`Tipe kamar gagal: ${rt.reason}`);
 
 const rp = createRatePlan(org.id, propertyId, {
   code: 'BAR', name: 'Best Available Rate', mealPlan: 'breakfast',
@@ -75,12 +78,14 @@ const rp = createRatePlan(org.id, propertyId, {
   inclusions: ['Sarapan 2 orang', 'WiFi'], policies: 'Batal gratis H-2',
   roomTypeSurcharges: {}, active: true,
 });
-rp.ok ? ok('Paket tarif "BAR" dibuat, Rp 1.450.000/malam') : bad(`Paket tarif gagal: ${rp.reason}`);
+if (rp.ok) ok('Paket tarif "BAR" dibuat, Rp 1.450.000/malam');
+else bad(`Paket tarif gagal: ${rp.reason}`);
 
 const rooms = listRoomTypes(org.id, propertyId);
 const plans = listRatePlans(org.id, propertyId);
 const free = rooms[0] ? sellableRooms(rooms[0], '2026-10-10', '2026-10-12') : 0;
-free === 12 ? ok(`Ketersediaan dihitung CRM: ${free} kamar bebas 10-12 Okt`) : bad(`Ketersediaan salah: ${free}`);
+if (free === 12) ok(`Ketersediaan dihitung CRM: ${free} kamar bebas 10-12 Okt`);
+else bad(`Ketersediaan salah: ${free}`);
 
 /* --------------------------------------------------- 2. koneksi chatwoot -- */
 step('2. Koneksi Chatwoot dan pemetaan inbox');
@@ -130,9 +135,11 @@ const lead = db.select().from(s.leads).where(eq(s.leads.organizationId, org.id))
 if (lead) {
   const leadContact = db.select().from(s.contacts).where(eq(s.contacts.id, lead.contactId)).get();
   ok(`Prospek dibuat otomatis: ${lead.code} · ${leadContact?.fullName ?? '?'} · tahap "${lead.stage}"`);
-  leadContact ? ok(`Kontak tamu tersimpan: ${leadContact.fullName}`) : bad('Kontak tamu tidak dibuat');
+  if (leadContact) ok(`Kontak tamu tersimpan: ${leadContact.fullName}`);
+  else bad('Kontak tamu tidak dibuat');
   const acts = db.select().from(s.activities).where(eq(s.activities.leadId, lead.id)).all();
-  acts.length ? ok(`${acts.length} aktivitas tercatat dari percakapan`) : bad('Isi percakapan tidak tercatat sebagai aktivitas');
+  if (acts.length) ok(`${acts.length} aktivitas tercatat dari percakapan`);
+  else bad('Isi percakapan tidak tercatat sebagai aktivitas');
 } else {
   bad(`Prospek TIDAK dibuat dari chat masuk (${msg.status}: ${msg.summary})`);
 }
@@ -148,7 +155,8 @@ if (lead) {
 
   for (const target of ['assigned', 'qualified'] as const) {
     const r = moveLeadStage(session, lead.id, target);
-    r.ok ? ok(`Naik ke "${target}"`) : bad(`Gagal ke "${target}": ${r.failures.map((f) => f.message).join('; ')}`);
+    if (r.ok) ok(`Naik ke "${target}"`);
+    else bad(`Gagal ke "${target}": ${r.failures.map((f) => f.message).join('; ')}`);
   }
 
   const gates = checkStageGates(lead.id, 'availability_checked', {});
@@ -158,9 +166,8 @@ if (lead) {
     propertyId, leadId: lead.id, checkIn: '2026-10-10', checkOut: '2026-10-12',
     rooms: 1, adults: 2, children: 0, rateContext: null,
   });
-  av.ok
-    ? ok(`Cek ketersediaan berhasil lewat ${av.sourceLabel}`)
-    : bad(`Cek ketersediaan gagal: ${av.message}`);
+  if (av.ok) ok(`Cek ketersediaan berhasil lewat ${av.sourceLabel}`);
+  else bad(`Cek ketersediaan gagal: ${av.message}`);
 }
 
 /* ------------------------------------------------------ 5. penawaran -- */
@@ -206,22 +213,21 @@ if (lead) {
     await decideReservation(session, reqId, { action: 'start_review' });
     await decideReservation(session, reqId, { action: 'confirm', manualReference: 'PMS-88123' });
     const saved = db.select().from(s2.reservationRequests).where(eq(s2.reservationRequests.id, reqId)).get();
-    saved?.status === 'confirmed'
-      ? ok(`Front office mengonfirmasi, status "${saved.status}"`)
-      : bad(`Konfirmasi tidak tersimpan, status "${saved?.status}"`);
+    if (saved?.status === 'confirmed') ok(`Front office mengonfirmasi, status "${saved.status}"`);
+    else bad(`Konfirmasi tidak tersimpan, status "${saved?.status}"`);
   } catch (e) { bad(`Reservasi gagal: ${(e as Error).message}`); }
 
   const won = moveLeadStage(session, lead.id, 'confirmed');
-  won.ok ? ok('Prospek ditutup sebagai "confirmed" (menang)') : bad(`Gagal menutup: ${won.failures.map((f) => f.message).join('; ')}`);
+  if (won.ok) ok('Prospek ditutup sebagai "confirmed" (menang)');
+  else bad(`Gagal menutup: ${won.failures.map((f) => f.message).join('; ')}`);
 }
 
 /* --------------------------------------------------- 7. alotmen turun -- */
 step('7. Alotmen berkurang setelah reservasi terkonfirmasi');
 if (rooms[0]) {
   const after = sellableRooms(rooms[0], '2026-10-10', '2026-10-12');
-  after === 11
-    ? ok(`Sisa kamar turun 12 → ${after} setelah 1 kamar dipesan`)
-    : bad(`Sisa kamar tidak turun sebagaimana mestinya: ${after} (harusnya 11)`);
+  if (after === 11) ok(`Sisa kamar turun 12 → ${after} setelah 1 kamar dipesan`);
+  else bad(`Sisa kamar tidak turun sebagaimana mestinya: ${after} (harusnya 11)`);
 }
 
 /* ------------------------------------------------------ 8. after-sales -- */
@@ -230,36 +236,30 @@ step('8. Setelah tamu menginap: riwayat, ucapan terima kasih, dan ajakan kembali
 // tanpa harus mengubah tanggal reservasinya.
 const afterCheckout = new Date('2026-10-13T09:00:00Z');
 const sweep = runAfterSalesSweep(ORG.id, afterCheckout);
-sweep.staysCompleted === 1
-  ? ok(`Inap selesai diproses: ${sweep.details.join(', ')}`)
-  : bad(`Sapuan memproses ${sweep.staysCompleted} inap, harusnya 1`);
+if (sweep.staysCompleted === 1) ok(`Inap selesai diproses: ${sweep.details.join(', ')}`);
+else bad(`Sapuan memproses ${sweep.staysCompleted} inap, harusnya 1`);
 
 const guest = lead ? db.select().from(s.contacts).where(eq(s.contacts.id, lead.contactId)).get() : null;
-guest?.stayCount === 1 && guest.lastStayDate === '2026-10-12'
-  ? ok(`Riwayat tamu diperbarui: ${guest.stayCount} kali menginap, terakhir ${guest.lastStayDate}`)
-  : bad(`Riwayat tamu salah: stayCount=${guest?.stayCount}, lastStayDate=${guest?.lastStayDate}`);
+if (guest?.stayCount === 1 && guest.lastStayDate === '2026-10-12') ok(`Riwayat tamu diperbarui: ${guest.stayCount} kali menginap, terakhir ${guest.lastStayDate}`);
+else bad(`Riwayat tamu salah: stayCount=${guest?.stayCount}, lastStayDate=${guest?.lastStayDate}`);
 
 const afterTasks = lead
   ? db.select().from(s.tasks).where(and(eq(s.tasks.leadId, lead.id), eq(s.tasks.status, 'open'))).all()
   : [];
 const postStay = afterTasks.find((t) => t.type === 'post_stay');
 const winBack = afterTasks.find((t) => t.type === 'win_back');
-postStay
-  ? ok(`Tugas pasca-inap dibuat, jatuh tempo ${postStay.dueAt?.toISOString().slice(0, 10)}: "${postStay.title}"`)
-  : bad('Tugas pasca-inap tidak dibuat');
-winBack
-  ? ok(`Tugas ajakan kembali dibuat, jatuh tempo ${winBack.dueAt?.toISOString().slice(0, 10)}: "${winBack.title}"`)
-  : bad('Tugas ajakan kembali tidak dibuat');
+if (postStay) ok(`Tugas pasca-inap dibuat, jatuh tempo ${postStay.dueAt?.toISOString().slice(0, 10)}: "${postStay.title}"`);
+else bad('Tugas pasca-inap tidak dibuat');
+if (winBack) ok(`Tugas ajakan kembali dibuat, jatuh tempo ${winBack.dueAt?.toISOString().slice(0, 10)}: "${winBack.title}"`);
+else bad('Tugas ajakan kembali tidak dibuat');
 
 const again = runAfterSalesSweep(ORG.id, afterCheckout);
-again.staysCompleted === 0
-  ? ok('Sapuan diulang tidak menggandakan tugas (idempoten)')
-  : bad(`Sapuan diulang memproses ulang ${again.staysCompleted} inap`);
+if (again.staysCompleted === 0) ok('Sapuan diulang tidak menggandakan tugas (idempoten)');
+else bad(`Sapuan diulang memproses ulang ${again.staysCompleted} inap`);
 
 const candidates = winBackCandidates(ORG.id, new Date('2027-05-01T00:00:00Z'));
-candidates.length === 1
-  ? ok(`Tamu masuk daftar ajakan kembali setelah jeda: ${candidates[0].fullName} (${candidates[0].stayCount}x)`)
-  : bad(`Daftar ajakan kembali berisi ${candidates.length} tamu, harusnya 1`);
+if (candidates.length === 1) ok(`Tamu masuk daftar ajakan kembali setelah jeda: ${candidates[0].fullName} (${candidates[0].stayCount}x)`);
+else bad(`Daftar ajakan kembali berisi ${candidates.length} tamu, harusnya 1`);
 
 /* ------------------------------------------------------------ ringkas -- */
 console.log(`\n${'═'.repeat(64)}`);

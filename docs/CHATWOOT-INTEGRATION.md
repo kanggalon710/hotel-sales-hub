@@ -205,3 +205,74 @@ Rujukan: [How to use webhooks](https://www.chatwoot.com/hc/user-guide/articles/1
    `conversation_status_changed`.
 5. Inbox baru muncul di Integrasi → Pemetaan setelah event pertama tiba.
    Petakan ke properti, lalu ulangi event yang masuk dead letter.
+
+## Dua bentuk payload, dan mengapa itu menjatuhkan tiga bug
+
+Chatwoot mengirim webhook dalam dua bentuk yang berbeda, dan konektor semula
+hanya mengenal satu.
+
+| Bagian | Bentuk bersarang (`message_created`) | Bentuk datar (event `conversation_*`) |
+|---|---|---|
+| Akun | `account.id` | `account_id` |
+| Inbox | `inbox.id` | `inbox_id` |
+| Kanal | `inbox.channel_type` | `channel` |
+| Percakapan | `conversation.id` | `id` |
+| Status | `conversation.status` | `status` |
+| Label | `conversation.labels` | `labels` |
+| Tamu | `sender` / `contact` | `meta.sender` |
+| Agen | `conversation.meta.assignee` | `meta.assignee` |
+
+Konektor membaca kolom kiri saja. Akibatnya, untuk setiap event tingkat
+percakapan dari Chatwoot sungguhan:
+
+1. id inbox tidak terbaca, sehingga event masuk dead letter sebagai
+   `Inbox unknown (unnamed)` betapa pun benarnya pemetaan dibuat,
+2. tamu tidak ditemukan, sehingga `conversation_created` **tidak pernah menjadi
+   prospek**,
+3. agen tidak dikenali, sehingga penugasan dari Chatwoot tidak pernah sampai.
+
+Nomor 2 adalah yang paling merugikan dan paling sunyi: alurnya "berhasil",
+hanya saja tidak ada prospek yang lahir.
+
+## Mengapa pengujian sebelumnya tidak menangkapnya
+
+Payload ujinya ditulis sendiri, dan payload buatan sendiri selalu berbentuk
+seperti yang dibayangkan penulisnya. Tes lama memberi konektor bentuk bersarang,
+lalu menyatakan konektor bekerja.
+
+`scripts/fixtures/chatwoot-payloads.ts` menyalin kedua bentuk apa adanya, dan
+`npm run test:ingest` menjalankan semuanya lewat konektor asli:
+
+```
+1. Bentuk datar        id inbox, kanal, tamu, status, semuanya dari akar payload
+2. Penugasan agen      meta.assignee di akar
+3. Bentuk bersarang    message_created masuk/keluar, contact_*, tanpa regresi
+4. Deduplikasi         kiriman ulang jadi duplikat, percakapan lain tidak
+5. Kegagalan jelas     tiap dead letter menyebut sebab yang benar
+```
+
+37 pemeriksaan. Aturannya sederhana: setiap kali konektor mengambil sebuah nilai
+dari payload, bentuk datar harus ikut diuji, karena di situlah semua kegagalan
+sebelumnya bersembunyi.
+
+## Deduplikasi memang mengumpulkan pembaruan yang berdekatan
+
+Sidik jari diturunkan dari entitas yang dibicarakan event, bukan dari jam
+dinding. Dua `conversation_updated` untuk percakapan yang sama karena itu
+dianggap satu. Itu disengaja: Chatwoot dikenal mengirim event yang sama dua kali
+([chatwoot#7402](https://github.com/chatwoot/chatwoot/issues/7402)), dan
+menggandakan efeknya jauh lebih merugikan daripada melewatkan satu pembaruan
+yang isinya sama.
+
+## Pesan dead letter membedakan dua kegagalan yang mirip
+
+Sebelumnya keduanya berbunyi sama, padahal penanganannya berbeda jauh:
+
+| Keadaan | Pesan | Yang harus dilakukan |
+|---|---|---|
+| Id inbox tidak terbaca | `Event "..." tidak memuat id inbox yang bisa dibaca (kunci yang diterima: ...)` | Bentuk payload belum dikenali. Memetakan inbox tidak akan menolong. |
+| Inbox belum dipetakan | `Inbox 2 ("Pararel") belum dipetakan ke properti mana pun` | Petakan di Integrasi → Pemetaan, lalu ulangi. |
+| Agen belum dipetakan | `Agen 8888 (Agen Malam) belum dipetakan ke pengguna CRM` | Petakan agen ke pengguna CRM. |
+
+Kunci payload ikut disebut agar bentuk yang tak dikenal bisa dilacak tanpa
+membuka basis data.

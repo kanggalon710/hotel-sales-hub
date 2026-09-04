@@ -14,7 +14,8 @@
     "chatwoot:connect": "node --experimental-strip-types scripts/connect-chatwoot.ts",
     "db:bootstrap": "node --experimental-strip-types scripts/bootstrap.ts",
     "db:reset:demo": "rm -f data/crm.sqlite data/crm.sqlite-wal data/crm.sqlite-shm && drizzle-kit migrate && npm run db:seed",
-    "e2e": "node --experimental-strip-types --conditions=react-server --import ./scripts/register-alias.mjs scripts/e2e-flow.ts"
+    "e2e": "node --experimental-strip-types --conditions=react-server --import ./scripts/register-alias.mjs scripts/e2e-flow.ts",
+    "test:ingest": "node --experimental-strip-types --conditions=react-server --import ./scripts/register-alias.mjs scripts/test-ingest.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",
