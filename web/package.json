@@ -11,8 +11,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "node --experimental-strip-types scripts/seed.ts",
-    "db:reset": "rm -f data/crm.sqlite data/crm.sqlite-wal data/crm.sqlite-shm && drizzle-kit migrate && npm run db:seed",
-    "chatwoot:connect": "node --experimental-strip-types scripts/connect-chatwoot.ts"
+    "chatwoot:connect": "node --experimental-strip-types scripts/connect-chatwoot.ts",
+    "db:bootstrap": "node --experimental-strip-types scripts/bootstrap.ts",
+    "db:reset:demo": "rm -f data/crm.sqlite data/crm.sqlite-wal data/crm.sqlite-shm && drizzle-kit migrate && npm run db:seed"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

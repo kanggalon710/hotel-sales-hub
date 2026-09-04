@@ -69,6 +69,14 @@ Contact attributes:
 
 ## Order of work
 
+0. Decide which tenant the deployment holds. `db:seed` builds the demo tenant and is wrong for a live deployment: it ships fabricated properties, inbox mappings and a sandbox Chatwoot connection, and `chatwoot:connect` updates that same connection row in place, so a real Chatwoot would inherit all of it. For a real deployment run `db:migrate` then `db:bootstrap`, which creates the system roles, one organization and one administrator and nothing else.
+
+   ```bash
+   ORG_NAME="Your Group" ADMIN_EMAIL=you@example.com ADMIN_NAME="Your Name" npm run db:bootstrap
+   ```
+
+   It refuses to run on a database that already has an organization, and prints a one-time password when `ADMIN_PASSWORD` is not supplied.
+
 1. Deploy the CRM behind a public URL, and confirm the probe above answers.
 2. Create the custom attributes above in Chatwoot.
 3. Issue an API access token.
