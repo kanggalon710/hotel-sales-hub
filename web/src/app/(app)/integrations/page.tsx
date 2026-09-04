@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { Activity, GitBranch, Plug } from 'lucide-react';
 import { db, integrationConnections, mappingRules } from '@/db';
 import { requirePermission, requireSession } from '@/server/context';
+import { requestOrigin } from '@/server/origin';
 import { PageHeader, PageShell } from '@/components/page-header';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { ConnectionCard } from '@/components/integrations/connection-card';
@@ -30,7 +31,7 @@ export default async function IntegrationsPage() {
     }
   }
 
-  const origin = process.env.APP_URL ?? 'http://localhost:3000';
+  const origin = await requestOrigin();
 
   return (
     <PageShell className="max-w-[1100px]">

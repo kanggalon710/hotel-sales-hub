@@ -21,7 +21,15 @@ Host, account and agent details below are placeholders; substitute your own.
 
 **1. The existing webhook points at a laptop.** `127.0.0.1:8000` resolves to the Chatwoot server itself, so it reaches nothing. It is also subscribed to one event where the connector needs six. Leave it alone if another service owns it; the CRM adds its own endpoint rather than editing that one.
 
-**2. The CRM has no public address yet.** Chatwoot must reach the CRM over the network. Until the CRM is deployed behind a public URL, inbound events cannot arrive at all. This is the one true blocker; everything else below can be prepared first.
+**2. The CRM must be reachable from Chatwoot.** Inbound events cannot arrive until the CRM answers on a public URL. Once it does, the webhook URL shown on the Integrations page is correct automatically: the origin is read from the request (`x-forwarded-host` / `x-forwarded-proto`), so a deployment behind nginx needs no configuration. Set `APP_URL` only to override that, for example when TLS terminates somewhere the headers do not describe.
+
+Verify reachability before touching Chatwoot. A deployed endpoint answers with the CRM's own JSON, not an nginx error page:
+
+```bash
+curl -s -X POST https://<crm public url>/api/webhooks/chatwoot/con_probe \
+  -H 'content-type: application/json' -d '{"event":"ping"}'
+# {"ok":false,"error":"Unknown webhook endpoint."}   <- route is live
+```
 
 **3. No custom attributes exist.** PRD 10.5 names the keys the CRM writes back. They must be created in Chatwoot first, or every outbound write fails.
 
@@ -61,7 +69,7 @@ Contact attributes:
 
 ## Order of work
 
-1. Deploy the CRM behind a public URL and set `APP_URL`.
+1. Deploy the CRM behind a public URL, and confirm the probe above answers.
 2. Create the custom attributes above in Chatwoot.
 3. Issue an API access token.
 4. Run the connector setup, which prints the webhook URL:
@@ -89,3 +97,16 @@ Nothing until step 4 runs. The seeded connection stays a sandbox with its own in
 - **22.3** One inbox today, WhatsApp, which becomes the sales inbox for the pilot property.
 
 Still open, and needed before the commercial half can be piloted: which PMS/CRS (22.4), tax and discount authority (22.5), and who owns final confirmation (22.6).
+
+## Going live: what the deployment changed
+
+Publishing the CRM turned three of these from theory into things that had to be right.
+
+| Was | Now |
+|---|---|
+| The Integrations page built the webhook URL from `APP_URL ?? 'http://localhost:3000'`. With `APP_URL` unset it showed a localhost URL that looked valid, would be pasted into Chatwoot, and would silently never deliver — the same failure as the pre-existing `127.0.0.1:8000` webhook. | The origin is derived from the request in `src/server/origin.ts`. `APP_URL` still wins when set. |
+| Every outbound job was dispatched with `POST`. | The method travels with the route. Updating a contact is `PUT`; a `POST` there updates nothing. Conversation writes stay `POST`. |
+| A failed outbound job recorded `Chatwoot responded 422`. | The refusal reason from the response body is recorded with it, so the dead-letter queue says which custom attribute or label is missing. |
+| The property cookie was set without `secure`. | It matches the session cookie and is `secure` in production. |
+
+`CHATWOOT_LIVE=1` is the switch between a simulated outbound queue and real API calls. Leave it off until the custom attributes exist in Chatwoot, otherwise every write fails on a missing attribute definition and lands in the dead-letter queue.

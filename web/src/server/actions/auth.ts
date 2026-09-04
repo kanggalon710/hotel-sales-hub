@@ -105,7 +105,13 @@ export async function setCurrentPropertyAction(propertyId: string) {
     return fail('You do not have access to that property.');
   }
   const jar = await cookies();
-  jar.set(PROPERTY_COOKIE, propertyId, { path: '/', sameSite: 'lax', maxAge: 90 * 86_400 });
+  // Matches the session cookie: over HTTPS this must not travel in the clear.
+  jar.set(PROPERTY_COOKIE, propertyId, {
+    path: '/',
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 90 * 86_400,
+  });
   return ok();
 }
 

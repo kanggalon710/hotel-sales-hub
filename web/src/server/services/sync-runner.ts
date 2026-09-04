@@ -5,13 +5,23 @@ import { decryptSecret } from '@/server/crypto';
 import { writeAudit } from '@/server/audit';
 import { parseJson } from '@/lib/utils';
 
-const ENDPOINTS: Record<string, (accountId: string, target: string) => string> = {
-  update_conversation_attributes: (a, t) => `/api/v1/accounts/${a}/conversations/${t}/custom_attributes`,
-  update_contact_attributes: (a, t) => `/api/v1/accounts/${a}/contacts/${t}`,
-  add_label: (a, t) => `/api/v1/accounts/${a}/conversations/${t}/labels`,
-  send_message: (a, t) => `/api/v1/accounts/${a}/conversations/${t}/messages`,
-  private_note: (a, t) => `/api/v1/accounts/${a}/conversations/${t}/messages`,
-  assign: (a, t) => `/api/v1/accounts/${a}/conversations/${t}/assignments`,
+/**
+ * Chatwoot application API routes, with the method each one requires.
+ *
+ * The method is not uniform: conversation writes are POST, but updating a
+ * contact is PUT. Sending POST to the contact route does not update anything,
+ * so the method has to travel with the path rather than be assumed.
+ * https://developers.chatwoot.com/api-reference/contacts/update-contact
+ */
+type Endpoint = { method: 'POST' | 'PUT'; path: (accountId: string, target: string) => string };
+
+const ENDPOINTS: Record<string, Endpoint> = {
+  update_conversation_attributes: { method: 'POST', path: (a, t) => `/api/v1/accounts/${a}/conversations/${t}/custom_attributes` },
+  update_contact_attributes: { method: 'PUT', path: (a, t) => `/api/v1/accounts/${a}/contacts/${t}` },
+  add_label: { method: 'POST', path: (a, t) => `/api/v1/accounts/${a}/conversations/${t}/labels` },
+  send_message: { method: 'POST', path: (a, t) => `/api/v1/accounts/${a}/conversations/${t}/messages` },
+  private_note: { method: 'POST', path: (a, t) => `/api/v1/accounts/${a}/conversations/${t}/messages` },
+  assign: { method: 'POST', path: (a, t) => `/api/v1/accounts/${a}/conversations/${t}/assignments` },
 };
 
 /**
@@ -53,11 +63,12 @@ export async function processSyncJobs(organizationId: string, limit = 25) {
     try {
       if (live) {
         const token = decryptSecret(connection.apiTokenCiphertext);
-        const path = ENDPOINTS[job.kind]?.(connection.externalAccountId ?? '1', job.targetExternalId);
-        if (!token || !connection.baseUrl || !path) throw new Error('Connection is missing a base URL, token, or endpoint mapping.');
+        const endpoint = ENDPOINTS[job.kind];
+        const path = endpoint?.path(connection.externalAccountId ?? '1', job.targetExternalId);
+        if (!token || !connection.baseUrl || !endpoint || !path) throw new Error('Connection is missing a base URL, token, or endpoint mapping.');
 
         const response = await fetch(`${connection.baseUrl.replace(/\/$/, '')}${path}`, {
-          method: 'POST',
+          method: endpoint.method,
           headers: {
             'Content-Type': 'application/json',
             api_access_token: token,
@@ -68,7 +79,13 @@ export async function processSyncJobs(organizationId: string, limit = 25) {
           body: JSON.stringify(parseJson<Record<string, unknown>>(job.payload, {})),
           signal: AbortSignal.timeout(connection.timeoutMs),
         });
-        if (!response.ok) throw new Error(`Chatwoot responded ${response.status}`);
+        if (!response.ok) {
+          // Chatwoot explains the refusal in the body ("custom attribute
+          // definition not found", "label not found"). A bare status code sends
+          // whoever reads the dead-letter queue back to guessing.
+          const detail = (await response.text().catch(() => '')).trim().slice(0, 300);
+          throw new Error(`Chatwoot responded ${response.status}${detail ? `: ${detail}` : ''}`);
+        }
       }
 
       db.update(syncJobs)
