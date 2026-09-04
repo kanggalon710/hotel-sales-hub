@@ -160,3 +160,48 @@ curl -s -o /dev/null -w '%{http_code}\n' \
 A `503` is fixed by setting `CRM_SECRET_KEY` back to the key that wrote the row,
 or by rotating the secret on the Integrations page and re-pasting the new URL
 into Chatwoot.
+
+## Bentuk payload: tiga tempat, satu id inbox
+
+Ditemukan saat menyambungkan instance nyata, bukan lewat pembacaan kode.
+
+Konektor mencari id inbox di dua tempat:
+
+```ts
+str(payload.inbox?.id) ?? str(payload.conversation?.inbox_id)
+```
+
+Itu cukup untuk `message_created`, yang memang membungkus `inbox` dan
+`conversation` sebagai objek. Tetapi untuk `conversation_updated` dan
+`conversation_status_changed`, Chatwoot **menyebar atribut percakapan di akar
+payload**, sehingga id inbox muncul sebagai `inbox_id` tingkat atas dan kanalnya
+sebagai `channel`:
+
+```json
+{ "event": "conversation_updated", "id": 2374, "inbox_id": 88933,
+  "channel": "Channel::WebWidget", "status": "pending", "changed_attributes": [...] }
+```
+
+Akibatnya setiap event tingkat percakapan dari Chatwoot asli berakhir di dead
+letter dengan pesan `Inbox unknown (unnamed) is not mapped to a property`,
+betapa pun benarnya pemetaan inbox itu dibuat. Pesannya menyesatkan: masalahnya
+bukan pemetaan yang hilang, melainkan id yang tidak pernah terbaca.
+
+Sekarang ketiganya dibaca, dan bentuk bersarang tetap didukung agar tidak ada
+regresi pada `message_created`.
+
+Rujukan: [How to use webhooks](https://www.chatwoot.com/hc/user-guide/articles/1677693021-how-to-use-webhooks),
+[chatwoot#13993](https://github.com/chatwoot/chatwoot/issues/13993).
+
+## Urutan menyambungkan yang terbukti jalan
+
+1. Deploy CRM, lalu pastikan endpoint menolak permintaan tanpa token (`401`/`503`).
+2. Bila jawabannya `503`, secret tidak terbaca karena `CRM_SECRET_KEY` berbeda
+   dari kunci yang menulis barisnya. Rotasi secret lewat halaman Integrasi
+   menulis ulang dengan kunci yang berjalan sekarang.
+3. Pasang URL webhook beserta `?token=` di Chatwoot, langganan enam event.
+4. Picu satu event nyata. Cara paling ringan tanpa mengirim pesan ke tamu adalah
+   menyelesaikan lalu membuka kembali satu percakapan; keduanya memicu
+   `conversation_status_changed`.
+5. Inbox baru muncul di Integrasi → Pemetaan setelah event pertama tiba.
+   Petakan ke properti, lalu ulangi event yang masuk dead letter.

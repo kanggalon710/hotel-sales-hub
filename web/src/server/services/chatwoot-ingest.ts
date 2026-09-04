@@ -18,6 +18,14 @@ export type ChatwootPayload = {
   id?: number | string;
   account?: { id?: number | string };
   inbox?: { id?: number | string; name?: string; channel_type?: string };
+  /**
+   * Untuk `conversation_updated` dan `conversation_status_changed`, Chatwoot
+   * menyebar atribut percakapan di tingkat atas, sehingga id inbox dan kanalnya
+   * ada di akar payload, bukan di dalam `inbox` maupun `conversation`.
+   * https://www.chatwoot.com/hc/user-guide/articles/1677693021-how-to-use-webhooks
+   */
+  inbox_id?: number | string;
+  channel?: string;
   conversation?: {
     id?: number | string;
     status?: string;
@@ -259,8 +267,11 @@ function applyEvent(eventId: string, connectionId: string | null, payload: Chatw
   const eventType = payload.event ?? 'unknown';
 
   const externalConversationId = str(payload.conversation?.id) ?? (eventType.startsWith('conversation') ? str(payload.id) : null);
+  // Tiga bentuk, satu arti. Tanpa cabang ketiga, setiap event tingkat percakapan
+  // dari Chatwoot asli berakhir di dead letter sebagai "Inbox unknown", betapa
+  // pun benarnya pemetaan inbox itu dibuat.
   const externalInboxId =
-    str(payload.inbox?.id) ?? str(payload.conversation?.inbox_id) ?? null;
+    str(payload.inbox?.id) ?? str(payload.conversation?.inbox_id) ?? str(payload.inbox_id) ?? null;
 
   /* ------------------------------ contact events ------------------------------ */
 
@@ -400,7 +411,7 @@ function applyEvent(eventId: string, connectionId: string | null, payload: Chatw
         externalConversationId,
         externalInboxId,
         inboxName: inboxRule?.externalName ?? payload.inbox?.name ?? null,
-        channel: inboxRule?.channel ?? payload.inbox?.channel_type ?? null,
+        channel: inboxRule?.channel ?? payload.inbox?.channel_type ?? payload.channel ?? null,
         contactId: contact.id,
         propertyId,
         conversationStatus: status,
@@ -498,7 +509,7 @@ function applyEvent(eventId: string, connectionId: string | null, payload: Chatw
     conversationId,
     ownerUserId: assignedUserId,
     teamId: inboxRule?.teamId ?? null,
-    channel: inboxRule?.channel ?? payload.inbox?.channel_type ?? null,
+    channel: inboxRule?.channel ?? payload.inbox?.channel_type ?? payload.channel ?? null,
     source: inboxRule?.channel ?? 'chatwoot',
     inquiryType: inboxRule?.inquiryType ?? 'fit',
     slaMinutes: 15,
